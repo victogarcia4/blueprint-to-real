@@ -1,4 +1,6 @@
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const TEXT_TO_IMAGE_MODEL = "google/imagen-4-fast";
+const IMAGE_REFERENCE_MODEL = "black-forest-labs/flux.2-klein-4b";
 
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -58,6 +60,14 @@ function findGeneratedImage(result) {
   return image || null;
 }
 
+function selectRenderModel({ imageDataUrl, imageUrl }) {
+  if (process.env.OPENROUTER_RENDER_MODEL) {
+    return process.env.OPENROUTER_RENDER_MODEL;
+  }
+
+  return imageDataUrl || imageUrl ? IMAGE_REFERENCE_MODEL : TEXT_TO_IMAGE_MODEL;
+}
+
 export default async function handler(request, response) {
   if (request.method === "OPTIONS") {
     response.statusCode = 204;
@@ -86,6 +96,7 @@ export default async function handler(request, response) {
     const body = await parseBody(request);
     const { imageDataUrl, imageUrl, style, floor, walls, furnish, fidelity, roomName, roomType } = body;
     const sourceKind = imageUrl ? "url" : "upload";
+    const selectedModel = selectRenderModel({ imageDataUrl, imageUrl });
     const prompt = buildPrompt({
       style,
       floor,
@@ -114,8 +125,8 @@ export default async function handler(request, response) {
         "X-Title": "blueprint-2-real"
       },
       body: JSON.stringify({
-        model: process.env.OPENROUTER_RENDER_MODEL || "google/gemini-2.5-flash-image",
-        modalities: ["image", "text"],
+        model: selectedModel,
+        modalities: ["image"],
         messages: [
           {
             role: "user",
@@ -150,7 +161,7 @@ export default async function handler(request, response) {
 
     sendJson(response, 200, {
       image,
-      model: result.model,
+      model: result.model || selectedModel,
       id: result.id
     });
   } catch (error) {
