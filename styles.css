@@ -34,6 +34,15 @@ body {
     sans-serif;
 }
 
+.noscript-banner {
+  margin: 16px;
+  border-radius: 12px;
+  background: var(--accent-dark);
+  color: white;
+  padding: 14px 18px;
+  font-weight: 800;
+}
+
 button,
 input,
 select {

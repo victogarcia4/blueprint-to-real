@@ -1,0 +1,16 @@
+{
+  "name": "blueprint-to-real",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ArchVision AI static MVP for converting blueprints into AI-assisted interior render concepts.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "check": "node --check app.js && node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
