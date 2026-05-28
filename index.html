@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ArchVision AI | De Plano a Realidad</title>
+    <meta
+      name="description"
+      content="Aplicacion para convertir planos tecnicos en renders interiores fotorrealistas con IA."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#ingesta" aria-label="ArchVision AI">
+          <span class="brand-mark">AV</span>
+          <span>
+            <strong>ArchVision AI</strong>
+            <small>De Plano a Realidad</small>
+          </span>
+        </a>
+        <nav class="nav-links" aria-label="Navegacion principal">
+          <a href="#ingesta">Ingesta</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#personalizacion">Estudio</a>
+          <a href="#renders">Renders</a>
+        </nav>
+        <button class="ghost-button" id="demoButton" type="button">Cargar demo</button>
+      </header>
+
+      <main>
+        <section class="hero-section" aria-labelledby="heroTitle">
+          <div class="hero-copy">
+            <p class="eyebrow">MVP operativo para visualizacion arquitectonica con IA</p>
+            <h1 id="heroTitle">Convierte planos tecnicos en interiores listos para presentar.</h1>
+            <p class="hero-text">
+              Sube un plano, valida la lectura espacial, elige materiales y genera renders HD
+              con mobiliario coherente por habitacion.
+            </p>
+            <div class="hero-actions">
+              <a class="primary-button" href="#ingesta">Empezar proyecto</a>
+              <a class="secondary-button" href="#pipeline">Ver pipeline</a>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="Vista previa de plano procesado">
+            <div class="plan-canvas">
+              <div class="room living"><span>Sala</span></div>
+              <div class="room kitchen"><span>Cocina</span></div>
+              <div class="room bath"><span>Bano</span></div>
+              <div class="room bed"><span>Dormitorio</span></div>
+              <div class="door door-one"></div>
+              <div class="door door-two"></div>
+              <div class="window window-one"></div>
+              <div class="window window-two"></div>
+              <div class="scan-line"></div>
+            </div>
+            <div class="metric-strip">
+              <div><strong id="confidenceMetric">91%</strong><span>confianza</span></div>
+              <div><strong id="roomMetric">4</strong><span>espacios</span></div>
+              <div><strong>HD</strong><span>salida</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="workflow-grid" id="ingesta" aria-labelledby="uploadTitle">
+          <article class="panel upload-panel">
+            <div class="section-heading">
+              <p class="eyebrow">01 Ingesta</p>
+              <h2 id="uploadTitle">Carga tu plano</h2>
+              <p>Archivos PDF, JPG, PNG, GIF o una URL publica al documento.</p>
+            </div>
+
+            <label class="dropzone" for="fileInput" id="dropzone">
+              <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,.gif" />
+              <span class="upload-icon">+</span>
+              <strong>Arrastra o selecciona un archivo</strong>
+              <small>Maximo recomendado: 100 MB en desktop, 50 MB en mobile.</small>
+            </label>
+
+            <form class="url-form" id="urlForm">
+              <label for="urlInput">URL del plano</label>
+              <div class="input-row">
+                <input id="urlInput" type="url" placeholder="https://..." />
+                <button class="secondary-button" type="submit">Validar</button>
+              </div>
+            </form>
+
+            <div class="file-card" id="fileCard" hidden>
+              <span class="file-type" id="fileType">PDF</span>
+              <div>
+                <strong id="fileName">plano.pdf</strong>
+                <small id="fileMeta">Listo para procesar</small>
+              </div>
+              <button class="text-button" id="processButton" type="button">Procesar</button>
+            </div>
+          </article>
+
+          <article class="panel" id="pipeline" aria-labelledby="pipelineTitle">
+            <div class="section-heading">
+              <p class="eyebrow">02 Pipeline IA</p>
+              <h2 id="pipelineTitle">Interpretacion del plano</h2>
+              <p>El sistema transforma el archivo en un modelo espacial verificable.</p>
+            </div>
+            <ol class="pipeline-list" id="pipelineList">
+              <li data-step="0"><span></span><div><strong>Normalizando archivo</strong><small>PDF a imagen, DPI y orientacion.</small></div></li>
+              <li data-step="1"><span></span><div><strong>Detectando muros y aperturas</strong><small>Lineas, puertas, ventanas y cotas.</small></div></li>
+              <li data-step="2"><span></span><div><strong>Clasificando habitaciones</strong><small>OCR, simbolos y relaciones espaciales.</small></div></li>
+              <li data-step="3"><span></span><div><strong>Calculando smart furnishing</strong><small>Circulacion, colisiones y assets.</small></div></li>
+              <li data-step="4"><span></span><div><strong>Preparando render</strong><small>ControlNet, mascaras y prompts.</small></div></li>
+            </ol>
+          </article>
+        </section>
+
+        <section class="review-section" aria-labelledby="reviewTitle">
+          <div class="section-heading">
+            <p class="eyebrow">03 Revision</p>
+            <h2 id="reviewTitle">Modelo espacial editable</h2>
+            <p>Corrige el analisis antes de gastar GPU en renders finales.</p>
+          </div>
+          <div class="review-layout">
+            <div class="analysis-board">
+              <div class="room-tag tag-living">Sala 21.4 m2</div>
+              <div class="room-tag tag-kitchen">Cocina 12.8 m2</div>
+              <div class="room-tag tag-bed">Dormitorio 15.6 m2</div>
+              <div class="room-tag tag-bath">Bano 5.1 m2</div>
+            </div>
+            <div class="room-table" role="table" aria-label="Habitaciones detectadas">
+              <div class="table-row table-head" role="row">
+                <span>Espacio</span><span>Confianza</span><span>Accion</span>
+              </div>
+              <div class="table-row" role="row">
+                <span>Cocina</span><span>94%</span><button type="button">Editar</button>
+              </div>
+              <div class="table-row" role="row">
+                <span>Sala</span><span>90%</span><button type="button">Editar</button>
+              </div>
+              <div class="table-row" role="row">
+                <span>Dormitorio</span><span>88%</span><button type="button">Editar</button>
+              </div>
+              <div class="table-row" role="row">
+                <span>Bano</span><span>86%</span><button type="button">Editar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="studio-section" id="personalizacion" aria-labelledby="studioTitle">
+          <div class="section-heading">
+            <p class="eyebrow">04 Estudio</p>
+            <h2 id="studioTitle">Personalizacion previa al render</h2>
+            <p>Define estilo, materiales, nivel de mobiliario y fidelidad geometrica.</p>
+          </div>
+          <div class="studio-grid">
+            <fieldset>
+              <legend>Estilo</legend>
+              <div class="segmented" id="styleGroup">
+                <button class="active" type="button" data-style="Japandi">Japandi</button>
+                <button type="button" data-style="Minimalista">Minimalista</button>
+                <button type="button" data-style="Industrial">Industrial</button>
+                <button type="button" data-style="Mediterraneo">Mediterraneo</button>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Materiales</legend>
+              <label>Piso<select id="floorSelect"><option>Roble natural</option><option>Microcemento</option><option>Piedra caliza</option></select></label>
+              <label>Paredes<select id="wallSelect"><option>Yeso blanco calido</option><option>Gris mineral</option><option>Arcilla clara</option></select></label>
+            </fieldset>
+            <fieldset>
+              <legend>Render</legend>
+              <label>Fidelidad geometrica<input id="fidelityRange" type="range" min="60" max="100" value="88" /></label>
+              <label>Nivel de mobiliario<select id="furnishSelect"><option>Completo</option><option>Esencial</option><option>Premium</option></select></label>
+            </fieldset>
+          </div>
+        </section>
+
+        <section class="renders-section" id="renders" aria-labelledby="rendersTitle">
+          <div class="section-heading">
+            <p class="eyebrow">05 Visualizacion</p>
+            <h2 id="rendersTitle">Galeria de renders</h2>
+            <p>Vistas generadas para revision, descarga y presentacion al cliente.</p>
+          </div>
+          <div class="render-actions">
+            <button class="primary-button" id="renderButton" type="button">Generar renders</button>
+            <span id="renderStatus">Esperando plano procesado</span>
+          </div>
+          <div class="render-grid" id="renderGrid">
+            <article class="render-card living-render">
+              <span>Sala</span>
+              <strong>Vista principal</strong>
+            </article>
+            <article class="render-card kitchen-render">
+              <span>Cocina</span>
+              <strong>Vista funcional</strong>
+            </article>
+            <article class="render-card bed-render">
+              <span>Dormitorio</span>
+              <strong>Vista nocturna</strong>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
