@@ -36,6 +36,7 @@ let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
 let uploadedImageDataUrls = [];
 let visualReferences = [];
+let originalPreviewFiles = [];
 let remoteImageUrl = "";
 let previewObjectUrl = "";
 let previewObjectUrls = [];
@@ -118,11 +119,6 @@ async function loadPdfJs() {
   return pdfjsPromise;
 }
 
-async function renderPdfFirstPage(file) {
-  const pages = await renderPdfPages(file, 1);
-  return pages[0] || "";
-}
-
 async function renderPdfPages(file, maxPages = 3) {
   const pdfjs = await loadPdfJs();
   const data = await file.arrayBuffer();
@@ -151,6 +147,71 @@ function resetPreview() {
   previewObjectUrl = "";
   previewGallery.innerHTML = "";
   planPreview.hidden = true;
+}
+
+function openPreviewWindow({ title, url, kind }) {
+  const previewWindow = window.open("", "_blank");
+  if (!previewWindow) {
+    previewStatus.textContent = "Permite ventanas emergentes para ampliar el archivo";
+    return;
+  }
+
+  const safeTitle = escapeHtml(title);
+  const safeUrl = escapeHtml(url);
+  const media =
+    kind === "image"
+      ? `<img src="${safeUrl}" alt="${safeTitle}" />`
+      : `<iframe src="${safeUrl}" title="${safeTitle}"></iframe>`;
+
+  previewWindow.document.open();
+  previewWindow.document.write(`
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>${safeTitle}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f7f8f5;
+            color: #171a18;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 22px;
+            border-bottom: 1px solid #d8ddd6;
+            background: #fff;
+          }
+          strong { font-size: 18px; }
+          main {
+            display: grid;
+            min-height: calc(100vh - 65px);
+            padding: 18px;
+            place-items: center;
+          }
+          img, iframe {
+            width: 100%;
+            height: calc(100vh - 102px);
+            border: 0;
+            border-radius: 10px;
+            background: #fff;
+            object-fit: contain;
+          }
+        </style>
+      </head>
+      <body>
+        <header><strong>${safeTitle}</strong><span>Vista ampliada</span></header>
+        <main>${media}</main>
+      </body>
+    </html>
+  `);
+  previewWindow.document.close();
 }
 
 function createPreviewCard({ title, subtitle, url, kind }) {
@@ -187,10 +248,15 @@ function createPreviewCard({ title, subtitle, url, kind }) {
   if (url) {
     const actions = document.createElement("div");
     actions.className = "preview-actions";
-    actions.innerHTML = `
-      <a class="secondary-button" href="${url}" target="_blank" rel="noopener">Abrir archivo</a>
-      <small>${kind === "pdf" ? "PDF visible para revision" : "Referencia lista"}</small>
-    `;
+    const button = document.createElement("button");
+    button.className = "secondary-button";
+    button.type = "button";
+    button.textContent = "Abrir archivo";
+    button.addEventListener("click", () => openPreviewWindow({ title, url, kind }));
+    actions.append(button);
+    const note = document.createElement("small");
+    note.textContent = kind === "pdf" ? "Vista ampliada del PDF original" : "Vista ampliada del archivo original";
+    actions.append(note);
     card.append(actions);
   }
 
@@ -248,80 +314,6 @@ function showPreviewFromUrl(value) {
   });
 }
 
-function rebuildPreviewFromReferences() {
-  if (!visualReferences.length && !uploadedImageDataUrls.length && !remoteImageUrl) return;
-
-  resetPreview();
-  planPreview.hidden = false;
-
-  if (remoteImageUrl) {
-    showPreviewFromUrl(remoteImageUrl);
-    return;
-  }
-
-  const references = visualReferences.length
-    ? visualReferences
-    : uploadedImageDataUrls.map((image, index) => ({
-        image,
-        title: `Referencia ${index + 1}`,
-        category: "reference",
-        fromPdf: false
-      }));
-
-  previewStatus.textContent = `${references.length} referencia${references.length === 1 ? "" : "s"} lista${
-    references.length === 1 ? "" : "s"
-  }`;
-  references.forEach((reference) => {
-    createPreviewCard({
-      title: reference.title,
-      subtitle: reference.fromPdf ? "Pagina PDF convertida a imagen" : "Imagen enviada al modelo para analisis",
-      url: reference.image,
-      kind: "image"
-    });
-  });
-}
-
-function showDemoPreview() {
-  const demoSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860">
-      <rect width="1200" height="860" fill="#fbfcf9"/>
-      <g fill="none" stroke="#252a26" stroke-width="18">
-        <rect x="88" y="84" width="1024" height="692" rx="8"/>
-        <path d="M88 392h1024M552 84v692M552 392h560M88 392v384M552 596h560"/>
-      </g>
-      <g fill="#0d6b57" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800">
-        <text x="184" y="234">Sala</text>
-        <text x="726" y="234">Cocina</text>
-        <text x="182" y="602">Dormitorio</text>
-        <text x="742" y="704">Bano</text>
-      </g>
-      <g stroke="#74a9d8" stroke-width="12" stroke-linecap="round">
-        <path d="M244 84h164M760 84h184M1112 220v128M92 620v106"/>
-      </g>
-      <g stroke="#0d6b57" stroke-width="10" stroke-linecap="round">
-        <path d="M552 470q78 0 122-58M552 650q78 0 122-58"/>
-      </g>
-      <text x="88" y="824" fill="#5f6861" font-family="Arial, Helvetica, sans-serif" font-size="28">
-        Demo apartamento 82m2 - plano normalizado para previsualizacion
-      </text>
-    </svg>
-  `;
-  const image = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(demoSvg)}`;
-
-  visualReferences = [
-    {
-      image,
-      title: "demo-apartamento-82m2.pdf - pagina 1",
-      category: "plan",
-      fromPdf: true
-    }
-  ];
-  uploadedImageDataUrls = [image];
-  uploadedImageDataUrl = image;
-  remoteImageUrl = "";
-  rebuildPreviewFromReferences();
-}
-
 function clearPipeline() {
   pipelineItems.forEach((item) => {
     item.classList.remove("active", "done");
@@ -330,7 +322,11 @@ function clearPipeline() {
 
 function processPlan() {
   if (planPreview.hidden) {
-    rebuildPreviewFromReferences();
+    if (originalPreviewFiles.length) {
+      showPreviewFromFiles(originalPreviewFiles);
+    } else if (remoteImageUrl) {
+      showPreviewFromUrl(remoteImageUrl);
+    }
   }
   if (!planPreview.hidden) {
     planPreview.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -456,6 +452,7 @@ function handleFiles(fileList) {
     `${formatBytes(totalSize)} total. ${imageFiles.length} imagen(es), ${pdfFiles.length} PDF(s).`
   );
   showPreviewFromFiles(files);
+  originalPreviewFiles = files;
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
@@ -496,17 +493,6 @@ function handleFiles(fileList) {
     visualReferences = converted;
     uploadedImageDataUrls = converted.map((item) => item.image);
     uploadedImageDataUrl = uploadedImageDataUrls[0] || "";
-
-    converted
-      .filter((item) => item.fromPdf)
-      .forEach((item) => {
-        createPreviewCard({
-          title: item.title,
-          subtitle: "Pagina PDF convertida a imagen para render IA",
-          url: item.image,
-          kind: "image"
-        });
-      });
 
     const failed = results.filter((result) => result.status === "rejected").length;
     fileMeta.textContent = uploadedImageDataUrls.length
@@ -549,6 +535,7 @@ urlForm.addEventListener("submit", (event) => {
     uploadedImageDataUrl = "";
     uploadedImageDataUrls = [];
     visualReferences = [];
+    originalPreviewFiles = [];
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
     showPreviewFromUrl(value);
   } catch {
@@ -561,7 +548,13 @@ processButton.addEventListener("click", processPlan);
 
 demoButton.addEventListener("click", () => {
   setFileCard("demo-apartamento-82m2.pdf", "PDF", "Demo cargada. 4 habitaciones detectables.");
-  showDemoPreview();
+  originalPreviewFiles = [];
+  visualReferences = [];
+  uploadedImageDataUrl = "";
+  uploadedImageDataUrls = [];
+  remoteImageUrl = "";
+  resetPreview();
+  previewStatus.textContent = "La demo no incluye un PDF original para previsualizar.";
   processPlan();
   document.querySelector("#pipeline").scrollIntoView({ behavior: "smooth", block: "center" });
 });
