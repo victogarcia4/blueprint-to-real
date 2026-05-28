@@ -683,6 +683,29 @@ input[type="range"] {
   font-size: 1.35rem;
 }
 
+.real-render {
+  grid-column: 1 / -1;
+  min-height: 620px;
+  background: #111914;
+}
+
+.real-render img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.real-render::before {
+  z-index: 1;
+}
+
+.real-render span,
+.real-render strong {
+  z-index: 2;
+}
+
 .living-render {
   background:
     linear-gradient(135deg, #d7ded6, #8a9b8e 44%, #33453c),

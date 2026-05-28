@@ -18,6 +18,8 @@ const styleGroup = document.querySelector("#styleGroup");
 
 let processed = false;
 let activeStyle = "Japandi";
+let uploadedImageDataUrl = "";
+let remoteImageUrl = "";
 
 function formatBytes(bytes) {
   if (!bytes) return "Tamano no disponible";
@@ -83,6 +85,19 @@ function handleFile(file) {
 
   const size = formatBytes(file.size);
   setFileCard(file.name, extension, `${size} seleccionado. Validacion completada.`);
+  remoteImageUrl = "";
+  uploadedImageDataUrl = "";
+
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      uploadedImageDataUrl = String(reader.result || "");
+      fileMeta.textContent = `${size} seleccionado. Imagen lista para render real.`;
+    });
+    reader.readAsDataURL(file);
+  } else {
+    fileMeta.textContent = `${size} seleccionado. Para render real, sube una imagen del plano o usa una URL de imagen.`;
+  }
 }
 
 fileInput.addEventListener("change", (event) => {
@@ -115,6 +130,8 @@ urlForm.addEventListener("submit", (event) => {
     const url = new URL(value);
     const path = url.pathname.split("/").pop() || "plano-remoto.pdf";
     const extension = path.includes(".") ? path.split(".").pop() : "URL";
+    remoteImageUrl = value;
+    uploadedImageDataUrl = "";
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
   } catch {
     setFileCard("URL invalida", "ERR", "Revisa el protocolo y dominio del enlace.");
@@ -144,13 +161,47 @@ renderButton.addEventListener("click", () => {
   }
 
   renderButton.disabled = true;
-  renderStatus.textContent = `Generando renders en estilo ${activeStyle}`;
+  renderStatus.textContent = `Generando render real en estilo ${activeStyle}`;
 
-  window.setTimeout(() => {
-    renderGrid.querySelectorAll(".render-card").forEach((card, index) => {
-      window.setTimeout(() => card.classList.add("generated"), index * 130);
-    });
-    renderStatus.textContent = "3 renders HD listos para revision";
+  const payload = {
+    imageDataUrl: uploadedImageDataUrl,
+    imageUrl: remoteImageUrl,
+    style: activeStyle,
+    floor: document.querySelector("#floorSelect").value,
+    walls: document.querySelector("#wallSelect").value,
+    furnish: document.querySelector("#furnishSelect").value,
+    fidelity: document.querySelector("#fidelityRange").value
+  };
+
+  fetch("/api/render", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.setup || data.error || "No se pudo generar el render.");
+      }
+      return data;
+    })
+    .then((data) => {
+      renderGrid.innerHTML = `
+        <article class="render-card generated real-render">
+          <img src="${data.image}" alt="Render interior generado por IA desde el plano" />
+          <span>Render IA</span>
+          <strong>${activeStyle}</strong>
+        </article>
+      `;
+      renderStatus.textContent = "Render real listo para revision";
+    })
+    .catch((error) => {
+      renderStatus.textContent = error.message;
+      renderGrid.querySelectorAll(".render-card").forEach((card, index) => {
+        window.setTimeout(() => card.classList.add("generated"), index * 130);
+      });
+    })
+    .finally(() => {
     renderButton.disabled = false;
-  }, 1100);
+    });
 });
