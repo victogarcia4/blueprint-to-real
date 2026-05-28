@@ -689,6 +689,36 @@ input[type="range"] {
   background: #111914;
 }
 
+.render-loading,
+.render-error {
+  grid-column: 1 / -1;
+  min-height: 320px;
+  background:
+    linear-gradient(135deg, rgba(13, 107, 87, 0.22), transparent 42%),
+    #18211d;
+}
+
+.render-error {
+  background:
+    linear-gradient(135deg, rgba(180, 95, 39, 0.36), transparent 42%),
+    #251b16;
+}
+
+.render-error small,
+.render-loading small {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.render-error code {
+  color: white;
+  font-weight: 800;
+}
+
 .real-render img {
   position: absolute;
   inset: 0;

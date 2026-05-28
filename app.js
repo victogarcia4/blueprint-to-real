@@ -21,6 +21,8 @@ let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
 let remoteImageUrl = "";
 
+const placeholderRenders = renderGrid.innerHTML;
+
 function formatBytes(bytes) {
   if (!bytes) return "Tamano no disponible";
   const units = ["B", "KB", "MB", "GB"];
@@ -71,6 +73,28 @@ function processPlan() {
     confidenceMetric.textContent = "93%";
     roomMetric.textContent = "4";
   }, pipelineItems.length * 720 + 300);
+}
+
+function showRenderError(message) {
+  renderStatus.textContent = "No se pudo generar el render";
+  renderGrid.innerHTML = `
+    <article class="render-card generated render-error">
+      <span>Error de render</span>
+      <strong>${message}</strong>
+      <small>
+        En local usa <code>npm run dev:vercel</code> para activar /api/render.
+        En produccion verifica OPENROUTER_API_KEY y vuelve a desplegar.
+      </small>
+    </article>
+  `;
+}
+
+function showDemoRenders() {
+  renderGrid.innerHTML = placeholderRenders;
+  renderGrid.querySelectorAll(".render-card").forEach((card, index) => {
+    window.setTimeout(() => card.classList.add("generated"), index * 130);
+  });
+  renderStatus.textContent = "3 renders conceptuales listos. Para render real usa Vercel con OPENROUTER_API_KEY.";
 }
 
 function handleFile(file) {
@@ -162,6 +186,13 @@ renderButton.addEventListener("click", () => {
 
   renderButton.disabled = true;
   renderStatus.textContent = `Generando render real en estilo ${activeStyle}`;
+  renderGrid.innerHTML = `
+    <article class="render-card generated render-loading">
+      <span>Render IA</span>
+      <strong>Generando imagen real...</strong>
+      <small>Esto puede tardar entre 20 y 90 segundos segun el modelo de OpenRouter.</small>
+    </article>
+  `;
 
   const payload = {
     imageDataUrl: uploadedImageDataUrl,
@@ -196,10 +227,11 @@ renderButton.addEventListener("click", () => {
       renderStatus.textContent = "Render real listo para revision";
     })
     .catch((error) => {
-      renderStatus.textContent = error.message;
-      renderGrid.querySelectorAll(".render-card").forEach((card, index) => {
-        window.setTimeout(() => card.classList.add("generated"), index * 130);
-      });
+      if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
+        showRenderError(error.message || "El servidor local no tiene backend serverless activo.");
+        return;
+      }
+      showRenderError(error.message || "No se pudo generar el render.");
     })
     .finally(() => {
     renderButton.disabled = false;
