@@ -37,6 +37,7 @@ let uploadedImageDataUrl = "";
 let uploadedImageDataUrls = [];
 let visualReferences = [];
 let originalPreviewFiles = [];
+let originalPreviewItems = [];
 let remoteImageUrl = "";
 let previewObjectUrl = "";
 let previewObjectUrls = [];
@@ -311,6 +312,26 @@ function showPreviewFromFiles(files) {
   });
 }
 
+function showPreviewFromItems(items) {
+  const previewItems = Array.from(items || []);
+  if (!previewItems.length) return;
+
+  resetPreview();
+  planPreview.hidden = false;
+  previewStatus.textContent = `${previewItems.length} archivo${previewItems.length === 1 ? "" : "s"} anexado${
+    previewItems.length === 1 ? "" : "s"
+  }`;
+
+  previewItems.forEach((item) => {
+    createPreviewCard({
+      title: item.name,
+      subtitle: item.kind === "pdf" ? "PDF original cargado para revision" : "Imagen original cargada para revision",
+      url: item.url,
+      kind: item.kind
+    });
+  });
+}
+
 function showPreviewFromUrl(value) {
   resetPreview();
   planPreview.hidden = false;
@@ -331,6 +352,11 @@ function ensureOriginalPreview() {
   if (hasSourceFiles) {
     originalPreviewFiles = sourceFiles;
     showPreviewFromFiles(originalPreviewFiles);
+    return;
+  }
+
+  if (originalPreviewItems.length) {
+    showPreviewFromItems(originalPreviewItems);
     return;
   }
 
@@ -472,11 +498,27 @@ function handleFiles(fileList) {
     `${formatBytes(totalSize)} total. ${imageFiles.length} imagen(es), ${pdfFiles.length} PDF(s).`
   );
   originalPreviewFiles = files;
+  originalPreviewItems = [];
   showPreviewFromFiles(originalPreviewFiles);
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
   visualReferences = [];
+
+  files.forEach((file) => {
+    const extension = (file.name.split(".").pop() || "").toLowerCase();
+    const kind = file.type.startsWith("image/") ? "image" : file.type === "application/pdf" || extension === "pdf" ? "pdf" : "fallback";
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const url = String(reader.result || "");
+      if (!url) return;
+      originalPreviewItems = [...originalPreviewItems.filter((item) => item.name !== file.name), { name: file.name, kind, url }];
+      if (planPreview.hidden || !previewGallery.children.length) {
+        showPreviewFromItems(originalPreviewItems);
+      }
+    });
+    reader.readAsDataURL(file);
+  });
 
   const imagePromises = imageFiles.map(
     (file) =>
@@ -556,6 +598,7 @@ urlForm.addEventListener("submit", (event) => {
     uploadedImageDataUrls = [];
     visualReferences = [];
     originalPreviewFiles = [];
+    originalPreviewItems = [];
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
     showPreviewFromUrl(value);
   } catch {
@@ -569,6 +612,7 @@ processButton.addEventListener("click", processPlan);
 demoButton.addEventListener("click", () => {
   setFileCard("demo-apartamento-82m2.pdf", "PDF", "Demo cargada. 4 habitaciones detectables.");
   originalPreviewFiles = [];
+  originalPreviewItems = [];
   visualReferences = [];
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
