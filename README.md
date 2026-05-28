@@ -29,18 +29,18 @@ Vercel uses `vercel.json`:
 
 ## Real AI Rendering
 
-The serverless endpoint `api/render.js` calls OpenAI image generation through the Responses API.
+The serverless endpoint `api/render.js` calls OpenRouter image generation through the Chat Completions API.
 
 Required Vercel environment variable:
 
 ```bash
-OPENAI_API_KEY=...
+OPENROUTER_API_KEY=...
 ```
 
 Optional:
 
 ```bash
-OPENAI_RENDER_MODEL=gpt-5-mini
+OPENROUTER_RENDER_MODEL=google/gemini-2.5-flash-image
 ```
 
 For real plan-conditioned rendering, upload a JPG, PNG, GIF, or provide a public image URL. Local PDFs are accepted by the UI for the product flow, but PDF-to-image conversion should be added as a separate backend step before sending the plan to the render endpoint.

@@ -1,4 +1,4 @@
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -48,19 +48,10 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind }) {
   ].join(" ");
 }
 
-function findGeneratedImage(output) {
-  for (const item of output || []) {
-    if (item.type === "image_generation_call" && item.result) {
-      return item.result;
-    }
-
-    if (Array.isArray(item.content)) {
-      const image = item.content.find((content) => content.type === "image_generation_call");
-      if (image?.result) return image.result;
-    }
-  }
-
-  return null;
+function findGeneratedImage(result) {
+  const message = result.choices?.[0]?.message;
+  const image = message?.images?.[0]?.image_url?.url;
+  return image || null;
 }
 
 export default async function handler(request, response) {
@@ -70,10 +61,10 @@ export default async function handler(request, response) {
     return;
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY) {
     sendJson(response, 500, {
-      error: "Falta OPENAI_API_KEY en Vercel.",
-      setup: "Agrega OPENAI_API_KEY en Project Settings > Environment Variables y vuelve a desplegar."
+      error: "Falta OPENROUTER_API_KEY en Vercel.",
+      setup: "Agrega OPENROUTER_API_KEY en Project Settings > Environment Variables y vuelve a desplegar."
     });
     return;
   }
@@ -84,53 +75,50 @@ export default async function handler(request, response) {
     const sourceKind = imageUrl ? "url" : "upload";
     const prompt = buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind });
 
-    const content = [{ type: "input_text", text: prompt }];
+    const content = [{ type: "text", text: prompt }];
 
     if (imageDataUrl) {
-      content.push({ type: "input_image", image_url: imageDataUrl });
+      content.push({ type: "image_url", image_url: { url: imageDataUrl } });
     } else if (imageUrl) {
-      content.push({ type: "input_image", image_url: imageUrl });
+      content.push({ type: "image_url", image_url: { url: imageUrl } });
     }
 
-    const openAiResponse = await fetch(OPENAI_RESPONSES_URL, {
+    const openRouterResponse = await fetch(OPENROUTER_CHAT_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://blueprint-2-real.vercel.app",
+        "X-Title": "blueprint-2-real"
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_RENDER_MODEL || "gpt-5-mini",
-        input: [
+        model: process.env.OPENROUTER_RENDER_MODEL || "google/gemini-2.5-flash-image",
+        modalities: ["image", "text"],
+        messages: [
           {
             role: "user",
             content
           }
         ],
-        tools: [
-          {
-            type: "image_generation",
-            size: "1024x1024",
-            quality: "medium",
-            format: "png"
-          }
-        ],
-        tool_choice: { type: "image_generation" }
+        image_config: {
+          aspect_ratio: "1:1"
+        }
       })
     });
 
-    const result = await openAiResponse.json();
+    const result = await openRouterResponse.json();
 
-    if (!openAiResponse.ok) {
-      sendJson(response, openAiResponse.status, {
-        error: result.error?.message || "OpenAI no pudo generar el render.",
+    if (!openRouterResponse.ok) {
+      sendJson(response, openRouterResponse.status, {
+        error: result.error?.message || "OpenRouter no pudo generar el render.",
         details: result.error || result
       });
       return;
     }
 
-    const imageBase64 = findGeneratedImage(result.output);
+    const image = findGeneratedImage(result);
 
-    if (!imageBase64) {
+    if (!image) {
       sendJson(response, 502, {
         error: "La respuesta no incluyo una imagen generada.",
         details: result
@@ -139,7 +127,7 @@ export default async function handler(request, response) {
     }
 
     sendJson(response, 200, {
-      image: `data:image/png;base64,${imageBase64}`,
+      image,
       model: result.model,
       id: result.id
     });
