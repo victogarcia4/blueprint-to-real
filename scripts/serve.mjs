@@ -29,5 +29,5 @@ createServer((request, response) => {
 
   createReadStream(filePath).pipe(response);
 }).listen(port, "127.0.0.1", () => {
-  console.log(`ArchVision AI running at http://127.0.0.1:${port}`);
+  console.log(`blueprint-2-real running at http://127.0.0.1:${port}`);
 });

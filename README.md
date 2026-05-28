@@ -1,6 +1,6 @@
-# Blueprint to Real
+# blueprint-2-real
 
-Static MVP for **ArchVision AI: De Plano a Realidad**.
+Static MVP for converting blueprints into AI-assisted interior render concepts.
 
 ## Local Development
 
