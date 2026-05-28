@@ -15,6 +15,10 @@ const renderGrid = document.querySelector("#renderGrid");
 const confidenceMetric = document.querySelector("#confidenceMetric");
 const roomMetric = document.querySelector("#roomMetric");
 const styleGroup = document.querySelector("#styleGroup");
+const renderApiUrl =
+  location.hostname === "127.0.0.1" || location.hostname === "localhost"
+    ? "https://blueprint-2-real.vercel.app/api/render"
+    : "/api/render";
 
 let processed = false;
 let activeStyle = "Japandi";
@@ -82,8 +86,7 @@ function showRenderError(message) {
       <span>Error de render</span>
       <strong>${message}</strong>
       <small>
-        En local usa <code>npm run dev:vercel</code> para activar /api/render.
-        En produccion verifica OPENROUTER_API_KEY y vuelve a desplegar.
+        Revisa que OPENROUTER_API_KEY este activa en Vercel y que el plano sea una imagen o URL publica.
       </small>
     </article>
   `;
@@ -204,7 +207,7 @@ renderButton.addEventListener("click", () => {
     fidelity: document.querySelector("#fidelityRange").value
   };
 
-  fetch("/api/render", {
+  fetch(renderApiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
