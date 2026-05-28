@@ -236,6 +236,80 @@ function showPreviewFromUrl(value) {
   });
 }
 
+function rebuildPreviewFromReferences() {
+  if (!visualReferences.length && !uploadedImageDataUrls.length && !remoteImageUrl) return;
+
+  resetPreview();
+  planPreview.hidden = false;
+
+  if (remoteImageUrl) {
+    showPreviewFromUrl(remoteImageUrl);
+    return;
+  }
+
+  const references = visualReferences.length
+    ? visualReferences
+    : uploadedImageDataUrls.map((image, index) => ({
+        image,
+        title: `Referencia ${index + 1}`,
+        category: "reference",
+        fromPdf: false
+      }));
+
+  previewStatus.textContent = `${references.length} referencia${references.length === 1 ? "" : "s"} lista${
+    references.length === 1 ? "" : "s"
+  }`;
+  references.forEach((reference) => {
+    createPreviewCard({
+      title: reference.title,
+      subtitle: reference.fromPdf ? "Pagina PDF convertida a imagen" : "Imagen enviada al modelo para analisis",
+      url: reference.image,
+      kind: "image"
+    });
+  });
+}
+
+function showDemoPreview() {
+  const demoSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860">
+      <rect width="1200" height="860" fill="#fbfcf9"/>
+      <g fill="none" stroke="#252a26" stroke-width="18">
+        <rect x="88" y="84" width="1024" height="692" rx="8"/>
+        <path d="M88 392h1024M552 84v692M552 392h560M88 392v384M552 596h560"/>
+      </g>
+      <g fill="#0d6b57" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800">
+        <text x="184" y="234">Sala</text>
+        <text x="726" y="234">Cocina</text>
+        <text x="182" y="602">Dormitorio</text>
+        <text x="742" y="704">Bano</text>
+      </g>
+      <g stroke="#74a9d8" stroke-width="12" stroke-linecap="round">
+        <path d="M244 84h164M760 84h184M1112 220v128M92 620v106"/>
+      </g>
+      <g stroke="#0d6b57" stroke-width="10" stroke-linecap="round">
+        <path d="M552 470q78 0 122-58M552 650q78 0 122-58"/>
+      </g>
+      <text x="88" y="824" fill="#5f6861" font-family="Arial, Helvetica, sans-serif" font-size="28">
+        Demo apartamento 82m2 - plano normalizado para previsualizacion
+      </text>
+    </svg>
+  `;
+  const image = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(demoSvg)}`;
+
+  visualReferences = [
+    {
+      image,
+      title: "demo-apartamento-82m2.pdf - pagina 1",
+      category: "plan",
+      fromPdf: true
+    }
+  ];
+  uploadedImageDataUrls = [image];
+  uploadedImageDataUrl = image;
+  remoteImageUrl = "";
+  rebuildPreviewFromReferences();
+}
+
 function clearPipeline() {
   pipelineItems.forEach((item) => {
     item.classList.remove("active", "done");
@@ -243,6 +317,9 @@ function clearPipeline() {
 }
 
 function processPlan() {
+  if (planPreview.hidden) {
+    rebuildPreviewFromReferences();
+  }
   if (!planPreview.hidden) {
     planPreview.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -469,6 +546,7 @@ processButton.addEventListener("click", processPlan);
 
 demoButton.addEventListener("click", () => {
   setFileCard("demo-apartamento-82m2.pdf", "PDF", "Demo cargada. 4 habitaciones detectables.");
+  showDemoPreview();
   processPlan();
   document.querySelector("#pipeline").scrollIntoView({ behavior: "smooth", block: "center" });
 });
