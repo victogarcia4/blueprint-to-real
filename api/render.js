@@ -33,11 +33,12 @@ function parseBody(request) {
   });
 }
 
-function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind }) {
+function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType }) {
   return [
-    "Create a photorealistic architectural interior render from the provided floor plan reference.",
+    `Create one photorealistic architectural interior render for the ${roomName || roomType || "selected room"} from the provided floor plan reference.`,
     "Preserve the floor plan geometry, wall openings, doors, windows, circulation paths, and room proportions as much as possible.",
-    "Interpret the plan as a residential interior and furnish each visible room with coherent, correctly scaled furniture and appliances.",
+    "Focus only on this room. Do not render a collage, whole apartment overview, or unrelated rooms.",
+    "Interpret the plan as a residential interior and furnish the room with coherent, correctly scaled furniture and appliances.",
     `Interior style: ${style || "Japandi"}.`,
     `Floor material: ${floor || "natural oak"}.`,
     `Wall finish: ${walls || "warm white plaster"}.`,
@@ -83,9 +84,18 @@ export default async function handler(request, response) {
 
   try {
     const body = await parseBody(request);
-    const { imageDataUrl, imageUrl, style, floor, walls, furnish, fidelity } = body;
+    const { imageDataUrl, imageUrl, style, floor, walls, furnish, fidelity, roomName, roomType } = body;
     const sourceKind = imageUrl ? "url" : "upload";
-    const prompt = buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind });
+    const prompt = buildPrompt({
+      style,
+      floor,
+      walls,
+      furnish,
+      fidelity,
+      sourceKind,
+      roomName,
+      roomType
+    });
 
     const content = [{ type: "text", text: prompt }];
 

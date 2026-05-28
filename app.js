@@ -19,6 +19,12 @@ const renderApiUrl =
   location.hostname === "127.0.0.1" || location.hostname === "localhost"
     ? "https://blueprint-2-real.vercel.app/api/render"
     : "/api/render";
+const detectedRooms = [
+  { name: "Sala", type: "living room", view: "Vista principal" },
+  { name: "Cocina", type: "kitchen", view: "Vista funcional" },
+  { name: "Dormitorio", type: "bedroom", view: "Vista nocturna" },
+  { name: "Bano", type: "bathroom", view: "Vista compacta" }
+];
 
 let processed = false;
 let activeStyle = "Japandi";
@@ -98,6 +104,44 @@ function showDemoRenders() {
     window.setTimeout(() => card.classList.add("generated"), index * 130);
   });
   renderStatus.textContent = "3 renders conceptuales listos. Para render real usa Vercel con OPENROUTER_API_KEY.";
+}
+
+function createRoomRenderCards() {
+  renderGrid.innerHTML = detectedRooms
+    .map(
+      (room, index) => `
+        <article class="render-card generated render-loading" id="renderRoom${index}">
+          <span>${room.name}</span>
+          <strong>Generando ${room.view.toLowerCase()}...</strong>
+          <small>Render real por ambiente. OpenRouter puede tardar entre 20 y 90 segundos por imagen.</small>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function updateRoomCard(index, room, data) {
+  const card = document.querySelector(`#renderRoom${index}`);
+  if (!card) return;
+
+  card.className = "render-card generated real-render room-real-render";
+  card.innerHTML = `
+    <img src="${data.image}" alt="Render IA de ${room.name}" />
+    <span>${room.name}</span>
+    <strong>${room.view}</strong>
+  `;
+}
+
+function updateRoomError(index, room, message) {
+  const card = document.querySelector(`#renderRoom${index}`);
+  if (!card) return;
+
+  card.className = "render-card generated render-error room-render-error";
+  card.innerHTML = `
+    <span>${room.name}</span>
+    <strong>No se pudo generar este ambiente</strong>
+    <small>${message}</small>
+  `;
 }
 
 function handleFile(file) {
@@ -189,15 +233,9 @@ renderButton.addEventListener("click", () => {
 
   renderButton.disabled = true;
   renderStatus.textContent = `Generando render real en estilo ${activeStyle}`;
-  renderGrid.innerHTML = `
-    <article class="render-card generated render-loading">
-      <span>Render IA</span>
-      <strong>Generando imagen real...</strong>
-      <small>Esto puede tardar entre 20 y 90 segundos segun el modelo de OpenRouter.</small>
-    </article>
-  `;
+  createRoomRenderCards();
 
-  const payload = {
+  const basePayload = {
     imageDataUrl: uploadedImageDataUrl,
     imageUrl: remoteImageUrl,
     style: activeStyle,
@@ -207,36 +245,39 @@ renderButton.addEventListener("click", () => {
     fidelity: document.querySelector("#fidelityRange").value
   };
 
-  fetch(renderApiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-    .then(async (response) => {
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.setup || data.error || "No se pudo generar el render.");
-      }
-      return data;
-    })
-    .then((data) => {
-      renderGrid.innerHTML = `
-        <article class="render-card generated real-render">
-          <img src="${data.image}" alt="Render interior generado por IA desde el plano" />
-          <span>Render IA</span>
-          <strong>${activeStyle}</strong>
-        </article>
-      `;
-      renderStatus.textContent = "Render real listo para revision";
-    })
-    .catch((error) => {
-      if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
-        showRenderError(error.message || "El servidor local no tiene backend serverless activo.");
-        return;
-      }
-      showRenderError(error.message || "No se pudo generar el render.");
-    })
-    .finally(() => {
+  Promise.allSettled(
+    detectedRooms.map((room, index) =>
+      fetch(renderApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...basePayload,
+          roomName: room.name,
+          roomType: room.type
+        })
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.setup || data.error || "No se pudo generar el render.");
+          }
+          return data;
+        })
+        .then((data) => {
+          updateRoomCard(index, room, data);
+          return data;
+        })
+        .catch((error) => {
+          updateRoomError(index, room, error.message || "No se pudo generar el render.");
+          throw error;
+        })
+    )
+  ).then((results) => {
+    const completed = results.filter((result) => result.status === "fulfilled").length;
+    renderStatus.textContent =
+      completed === detectedRooms.length
+        ? `${completed} ambientes renderizados`
+        : `${completed} de ${detectedRooms.length} ambientes renderizados`;
     renderButton.disabled = false;
-    });
+  });
 });

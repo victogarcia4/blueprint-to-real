@@ -689,6 +689,15 @@ input[type="range"] {
   background: #111914;
 }
 
+.room-real-render {
+  grid-column: auto;
+  min-height: 360px;
+}
+
+.room-render-error {
+  grid-column: auto;
+}
+
 .render-loading,
 .render-error {
   grid-column: 1 / -1;
