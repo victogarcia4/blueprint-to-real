@@ -531,6 +531,15 @@ select {
   background-size: 24px 24px;
 }
 
+.pdf-fallback {
+  pointer-events: none;
+  position: absolute;
+  inset: auto 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .preview-frame img,
 .preview-frame iframe {
   width: 100%;

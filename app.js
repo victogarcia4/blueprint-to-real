@@ -229,7 +229,11 @@ function createPreviewCard({ title, subtitle, url, kind }) {
     const frame = document.createElement("iframe");
     frame.src = url;
     frame.title = `Previsualizacion PDF de ${title}`;
+    const fallback = document.createElement("div");
+    fallback.className = "preview-fallback pdf-fallback";
+    fallback.innerHTML = `<strong>PDF original cargado</strong><small>Si el visor integrado no aparece, usa Abrir archivo para verlo ampliado.</small>`;
     media.append(frame);
+    media.append(fallback);
   } else {
     const fallback = document.createElement("div");
     fallback.className = "preview-fallback";
@@ -264,11 +268,16 @@ function createPreviewCard({ title, subtitle, url, kind }) {
 }
 
 function showPreviewFromFiles(files) {
+  const previewFiles = Array.from(files || []);
+  if (!previewFiles.length) return;
+
   resetPreview();
   planPreview.hidden = false;
-  previewStatus.textContent = `${files.length} archivo${files.length === 1 ? "" : "s"} anexado${files.length === 1 ? "" : "s"}`;
+  previewStatus.textContent = `${previewFiles.length} archivo${previewFiles.length === 1 ? "" : "s"} anexado${
+    previewFiles.length === 1 ? "" : "s"
+  }`;
 
-  files.forEach((file) => {
+  previewFiles.forEach((file) => {
     const url = URL.createObjectURL(file);
     previewObjectUrls.push(url);
     const extension = (file.name.split(".").pop() || "").toLowerCase();
@@ -314,6 +323,19 @@ function showPreviewFromUrl(value) {
   });
 }
 
+function ensureOriginalPreview() {
+  const previewIsEmpty = !previewGallery.children.length;
+
+  if (originalPreviewFiles.length && (planPreview.hidden || previewIsEmpty)) {
+    showPreviewFromFiles(originalPreviewFiles);
+    return;
+  }
+
+  if (remoteImageUrl && (planPreview.hidden || previewIsEmpty)) {
+    showPreviewFromUrl(remoteImageUrl);
+  }
+}
+
 function clearPipeline() {
   pipelineItems.forEach((item) => {
     item.classList.remove("active", "done");
@@ -321,13 +343,7 @@ function clearPipeline() {
 }
 
 function processPlan() {
-  if (planPreview.hidden) {
-    if (originalPreviewFiles.length) {
-      showPreviewFromFiles(originalPreviewFiles);
-    } else if (remoteImageUrl) {
-      showPreviewFromUrl(remoteImageUrl);
-    }
-  }
+  ensureOriginalPreview();
   if (!planPreview.hidden) {
     planPreview.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -357,6 +373,7 @@ function processPlan() {
     renderStatus.textContent = "Modelo espacial listo para renderizar";
     confidenceMetric.textContent = "93%";
     roomMetric.textContent = "4";
+    ensureOriginalPreview();
   }, pipelineItems.length * 720 + 300);
 }
 
@@ -451,8 +468,8 @@ function handleFiles(fileList) {
     files.length === 1 ? extension : "SET",
     `${formatBytes(totalSize)} total. ${imageFiles.length} imagen(es), ${pdfFiles.length} PDF(s).`
   );
-  showPreviewFromFiles(files);
   originalPreviewFiles = files;
+  showPreviewFromFiles(originalPreviewFiles);
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
