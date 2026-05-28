@@ -10,6 +10,7 @@ const pipelineItems = Array.from(document.querySelectorAll("#pipelineList li"));
 const urlForm = document.querySelector("#urlForm");
 const urlInput = document.querySelector("#urlInput");
 const renderButton = document.querySelector("#renderButton");
+const pdfButton = document.querySelector("#pdfButton");
 const renderStatus = document.querySelector("#renderStatus");
 const renderGrid = document.querySelector("#renderGrid");
 const confidenceMetric = document.querySelector("#confidenceMetric");
@@ -36,6 +37,7 @@ let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
 let remoteImageUrl = "";
 let previewObjectUrl = "";
+let renderedRooms = [];
 
 const placeholderRenders = renderGrid.innerHTML;
 
@@ -181,6 +183,13 @@ function updateRoomCard(index, room, data) {
     <span>${room.name}</span>
     <strong>${room.view}</strong>
   `;
+
+  renderedRooms[index] = {
+    ...room,
+    image: data.image,
+    model: data.model || ""
+  };
+  pdfButton.disabled = renderedRooms.filter(Boolean).length === 0;
 }
 
 function updateRoomError(index, room, message) {
@@ -286,6 +295,8 @@ renderButton.addEventListener("click", () => {
   }
 
   renderButton.disabled = true;
+  pdfButton.disabled = true;
+  renderedRooms = [];
   renderStatus.textContent = `Generando render real en estilo ${activeStyle}`;
   createRoomRenderCards();
 
@@ -333,5 +344,217 @@ renderButton.addEventListener("click", () => {
         ? `${completed} ambientes renderizados`
         : `${completed} de ${detectedRooms.length} ambientes renderizados`;
     renderButton.disabled = false;
+  });
+});
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function getPlanPreviewForReport() {
+  if (uploadedImageDataUrl) {
+    return `<img class="plan-image" src="${uploadedImageDataUrl}" alt="Plano adjuntado" />`;
+  }
+
+  if (remoteImageUrl) {
+    return `<img class="plan-image" src="${escapeHtml(remoteImageUrl)}" alt="Plano adjuntado por URL" />`;
+  }
+
+  return `
+    <div class="plan-missing">
+      <strong>Plano no embebido en el reporte</strong>
+      <span>Para incluirlo en el PDF, sube el plano como JPG, PNG o GIF, o usa una URL publica de imagen.</span>
+    </div>
+  `;
+}
+
+function buildReportHtml() {
+  const completedRooms = renderedRooms.filter(Boolean);
+  const date = new Date().toLocaleString("es-US", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <title>Reporte blueprint-2-real</title>
+        <style>
+          @page { size: letter; margin: 18mm; }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            color: #171a18;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #fff;
+          }
+          header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            padding-bottom: 18px;
+            border-bottom: 2px solid #0d6b57;
+          }
+          h1 {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1;
+          }
+          h2 {
+            margin: 28px 0 12px;
+            font-size: 20px;
+          }
+          p, span, small {
+            color: #5f6861;
+            line-height: 1.5;
+          }
+          .meta {
+            text-align: right;
+            font-size: 12px;
+          }
+          .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 18px 0 8px;
+          }
+          .summary div {
+            border: 1px solid #d8ddd6;
+            border-radius: 10px;
+            padding: 10px;
+          }
+          .summary strong {
+            display: block;
+            color: #0d6b57;
+            font-size: 18px;
+          }
+          .plan-wrap {
+            display: grid;
+            min-height: 260px;
+            place-items: center;
+            border: 1px solid #d8ddd6;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f7f8f5;
+          }
+          .plan-image {
+            max-width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+          }
+          .plan-missing {
+            display: grid;
+            gap: 8px;
+            padding: 28px;
+            text-align: center;
+          }
+          .renders {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .render {
+            break-inside: avoid;
+            border: 1px solid #d8ddd6;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+          .render img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            display: block;
+          }
+          .render div {
+            padding: 12px;
+          }
+          .render strong {
+            display: block;
+            font-size: 16px;
+          }
+          footer {
+            margin-top: 28px;
+            padding-top: 14px;
+            border-top: 1px solid #d8ddd6;
+            font-size: 11px;
+            color: #5f6861;
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <div>
+            <h1>blueprint-2-real</h1>
+            <p>Reporte de renderizacion interior para cliente</p>
+          </div>
+          <div class="meta">
+            <strong>Fecha</strong><br />
+            ${escapeHtml(date)}<br /><br />
+            <strong>Estilo</strong><br />
+            ${escapeHtml(activeStyle)}
+          </div>
+        </header>
+
+        <section class="summary">
+          <div><strong>${completedRooms.length}</strong><span>ambientes renderizados</span></div>
+          <div><strong>${escapeHtml(document.querySelector("#floorSelect").value)}</strong><span>piso</span></div>
+          <div><strong>${escapeHtml(document.querySelector("#wallSelect").value)}</strong><span>paredes</span></div>
+          <div><strong>${escapeHtml(document.querySelector("#furnishSelect").value)}</strong><span>mobiliario</span></div>
+        </section>
+
+        <h2>Plano adjuntado</h2>
+        <section class="plan-wrap">
+          ${getPlanPreviewForReport()}
+        </section>
+
+        <h2>Renders por ambiente</h2>
+        <section class="renders">
+          ${completedRooms
+            .map(
+              (room) => `
+                <article class="render">
+                  <img src="${room.image}" alt="Render ${escapeHtml(room.name)}" />
+                  <div>
+                    <strong>${escapeHtml(room.name)} - ${escapeHtml(room.view)}</strong>
+                    <small>Modelo: ${escapeHtml(room.model || "OpenRouter")}</small>
+                  </div>
+                </article>
+              `
+            )
+            .join("")}
+        </section>
+
+        <footer>
+          Generado por blueprint-2-real. Las imagenes son visualizaciones generadas por IA a partir del plano y parametros seleccionados.
+        </footer>
+      </body>
+    </html>
+  `;
+}
+
+pdfButton.addEventListener("click", () => {
+  if (!renderedRooms.filter(Boolean).length) {
+    renderStatus.textContent = "Genera al menos un render antes de crear el PDF";
+    return;
+  }
+
+  const reportWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!reportWindow) {
+    renderStatus.textContent = "Permite ventanas emergentes para generar el reporte PDF";
+    return;
+  }
+
+  reportWindow.document.open();
+  reportWindow.document.write(buildReportHtml());
+  reportWindow.document.close();
+  reportWindow.addEventListener("load", () => {
+    reportWindow.focus();
+    reportWindow.print();
   });
 });

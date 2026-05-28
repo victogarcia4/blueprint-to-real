@@ -16,7 +16,7 @@
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="styles.css?v=20260528-plan-preview" />
+    <link rel="stylesheet" href="styles.css?v=20260528-client-report" />
   </head>
   <body>
     <div class="app-shell">
@@ -206,6 +206,9 @@
           </div>
           <div class="render-actions">
             <button class="primary-button" id="renderButton" type="button">Generar renders</button>
+            <button class="secondary-button" id="pdfButton" type="button" disabled>
+              Descargar reporte PDF
+            </button>
             <span id="renderStatus">Esperando plano procesado</span>
           </div>
           <div class="render-grid" id="renderGrid">
@@ -230,6 +233,6 @@
         blueprint-2-real necesita JavaScript para procesar demos, validar URLs y generar previews.
       </div>
     </noscript>
-    <script src="app.js?v=20260528-plan-preview" defer></script>
+    <script src="app.js?v=20260528-client-report" defer></script>
   </body>
 </html>
