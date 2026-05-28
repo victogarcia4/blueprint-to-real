@@ -41,6 +41,9 @@ let previewObjectUrls = [];
 let renderedRooms = [];
 
 const placeholderRenders = renderGrid.innerHTML;
+const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+let pdfjsPromise = null;
 
 function formatBytes(bytes) {
   if (!bytes) return "Tamano no disponible";
@@ -56,6 +59,32 @@ function setFileCard(name, type, meta) {
   fileMeta.textContent = meta;
   fileCard.hidden = false;
   renderStatus.textContent = "Plano listo para procesar";
+}
+
+async function loadPdfJs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import(PDFJS_URL).then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+      return pdfjs;
+    });
+  }
+
+  return pdfjsPromise;
+}
+
+async function renderPdfFirstPage(file) {
+  const pdfjs = await loadPdfJs();
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1.7 });
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: context, viewport }).promise;
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 function resetPreview() {
@@ -133,7 +162,7 @@ function showPreviewFromFiles(files) {
     if (file.type === "application/pdf" || extension === "pdf") {
       createPreviewCard({
         title: file.name,
-        subtitle: "PDF previsualizado. Conversion IA pendiente",
+        subtitle: "PDF anexado. Se convertira a imagen para IA",
         url,
         kind: "pdf"
       });
@@ -295,21 +324,43 @@ function handleFiles(fileList) {
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
 
-  Promise.all(
-    imageFiles.map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.addEventListener("load", () => resolve(String(reader.result || "")));
-          reader.readAsDataURL(file);
-        })
-    )
-  ).then((images) => {
-    uploadedImageDataUrls = images.filter(Boolean);
+  const imagePromises = imageFiles.map(
+    (file) =>
+      new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () =>
+          resolve({ image: String(reader.result || ""), title: file.name, fromPdf: false })
+        );
+        reader.readAsDataURL(file);
+      })
+  );
+  const pdfPromises = pdfFiles.map((file) =>
+    renderPdfFirstPage(file).then((image) => ({ image, title: `${file.name} - pagina 1`, fromPdf: true }))
+  );
+
+  Promise.allSettled([...imagePromises, ...pdfPromises]).then((results) => {
+    const converted = results
+      .filter((result) => result.status === "fulfilled" && result.value.image)
+      .map((result) => result.value);
+
+    uploadedImageDataUrls = converted.map((item) => item.image);
     uploadedImageDataUrl = uploadedImageDataUrls[0] || "";
+
+    converted
+      .filter((item) => item.fromPdf)
+      .forEach((item) => {
+        createPreviewCard({
+          title: item.title,
+          subtitle: "Pagina PDF convertida a imagen para render IA",
+          url: item.image,
+          kind: "image"
+        });
+      });
+
+    const failed = results.filter((result) => result.status === "rejected").length;
     fileMeta.textContent = uploadedImageDataUrls.length
-      ? `${uploadedImageDataUrls.length} imagen(es) listas para render real. ${pdfFiles.length} PDF(s) en preview.`
-      : "PDF(s) previsualizados. Para render real automatico agrega una imagen o URL.";
+      ? `${uploadedImageDataUrls.length} referencia(s) listas para render real.${failed ? ` ${failed} PDF(s) no se pudieron convertir.` : ""}`
+      : "No se pudo preparar una referencia visual. Usa una imagen o PDF compatible.";
   });
 }
 
