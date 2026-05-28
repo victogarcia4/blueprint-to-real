@@ -35,11 +35,20 @@ function parseBody(request) {
 }
 
 function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType }) {
+  const isWholeHouse = roomType === "whole house";
+  const framing = isWholeHouse
+    ? "Create a single elegant full-house architectural visualization. Show the complete home as a coherent exterior or cutaway overview, not separate rooms."
+    : `Create a single photorealistic eye-level interior render of only the ${roomName || roomType || "selected room"}. The camera must be inside that room, not above the plan.`;
+
   return [
-    `Create one photorealistic architectural interior render for the ${roomName || roomType || "selected room"} from the provided floor plan reference.`,
-    "Preserve the floor plan geometry, wall openings, doors, windows, circulation paths, and room proportions as much as possible.",
-    "Focus only on this room. Do not render a collage, whole apartment overview, or unrelated rooms.",
-    "Interpret the plan as a residential interior and furnish the room with coherent, correctly scaled furniture and appliances.",
+    framing,
+    "Use the attached plan only as spatial reference. Do not copy the floor plan drawing into the final image.",
+    "Do not create a top-down plan, blueprint, dollhouse, exploded axonometric, multi-level collage, exterior-and-plan hybrid, or split-level diagram.",
+    isWholeHouse
+      ? "The result may include an exterior facade or clean architectural overview if the reference includes the whole house."
+      : "The result must look like a realistic client-facing interior photograph taken from standing height.",
+    "Respect approximate wall openings, doors, windows, circulation paths, and room proportions as much as possible.",
+    "Furnish with coherent, correctly scaled furniture and appliances.",
     `Interior style: ${style || "Japandi"}.`,
     `Floor material: ${floor || "natural oak"}.`,
     `Wall finish: ${walls || "warm white plaster"}.`,
@@ -48,7 +57,7 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomN
     sourceKind === "url"
       ? "The floor plan is provided as a remote image URL."
       : "The floor plan is provided as an uploaded image.",
-    "Do not add impossible doors, extra windows, warped walls, duplicate toilets, or blocked pathways.",
+    "Do not add impossible doors, extra windows, warped walls, duplicate toilets, blocked pathways, or unrelated floors.",
     "Output a polished, realistic interior visualization suitable for a client presentation."
   ].join(" ");
 }

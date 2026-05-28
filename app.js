@@ -26,6 +26,7 @@ const renderApiUrl =
     ? "https://blueprint-2-real.vercel.app/api/render"
     : "/api/render";
 const detectedRooms = [
+  { name: "Casa completa", type: "whole house", view: "Vista general" },
   { name: "Sala", type: "living room", view: "Vista principal" },
   { name: "Cocina", type: "kitchen", view: "Vista funcional" },
   { name: "Dormitorio", type: "bedroom", view: "Vista nocturna" },
