@@ -24,11 +24,11 @@ const renderApiUrl =
     ? "https://blueprint-2-real.vercel.app/api/render"
     : "/api/render";
 const detectedRooms = [
-  { name: "Casa completa", type: "whole house", view: "Vista general" },
-  { name: "Sala", type: "living room", view: "Vista principal" },
-  { name: "Cocina", type: "kitchen", view: "Vista funcional" },
-  { name: "Dormitorio", type: "bedroom", view: "Vista nocturna" },
-  { name: "Bano", type: "bathroom", view: "Vista compacta" }
+  { name: "Fachada", type: "whole house" },
+  { name: "Sala", type: "living room" },
+  { name: "Cocina", type: "kitchen" },
+  { name: "Dormitorio", type: "bedroom" },
+  { name: "Bano", type: "bathroom" }
 ];
 
 let processed = false;
@@ -434,7 +434,7 @@ function createRoomRenderCards() {
       (room, index) => `
         <article class="render-card generated render-loading" id="renderRoom${index}">
           <span>${room.name}</span>
-          <strong>Generando ${room.view.toLowerCase()}...</strong>
+          <strong>Generando render...</strong>
           <small>Render real por ambiente. OpenRouter puede tardar entre 20 y 90 segundos por imagen.</small>
         </article>
       `
@@ -450,7 +450,6 @@ function updateRoomCard(index, room, data) {
   card.innerHTML = `
     <img src="${data.image}" alt="Render IA de ${room.name}" />
     <span>${room.name}</span>
-    <strong>${room.view}</strong>
   `;
 
   renderedRooms[index] = {
@@ -870,7 +869,7 @@ function buildReportHtml() {
                 <article class="render">
                   <img src="${room.image}" alt="Render ${escapeHtml(room.name)}" />
                   <div>
-                    <strong>${escapeHtml(room.name)} - ${escapeHtml(room.view)}</strong>
+                    <strong>${escapeHtml(room.name)}</strong>
                     <small>Modelo: ${escapeHtml(room.model || "OpenRouter")}</small>
                   </div>
                 </article>

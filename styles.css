@@ -801,6 +801,11 @@ input[type="range"] {
   z-index: 1;
 }
 
+.render-card span {
+  max-width: min(34%, 210px);
+  white-space: nowrap;
+}
+
 .render-card strong {
   font-size: 1.35rem;
 }
@@ -865,6 +870,11 @@ input[type="range"] {
 .real-render span,
 .real-render strong {
   z-index: 2;
+}
+
+.room-real-render span {
+  align-self: flex-start;
+  width: min(34%, 210px);
 }
 
 .living-render {

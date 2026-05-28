@@ -37,7 +37,7 @@ function parseBody(request) {
 function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType, referenceCount }) {
   const isWholeHouse = roomType === "whole house";
   const framing = isWholeHouse
-    ? "Create a single elegant exterior facade render of the complete house. If any reference shows an elevation, facade, roofline, front view, or whole-home exterior, use that as the primary source."
+    ? "Create a single elegant front facade render of the complete house from outside at street or garden level. Show only the exterior elevation, roofline, windows, doors, entry, exterior materials, landscaping, and outdoor context."
     : `Create a single photorealistic eye-level interior render of only the ${roomName || roomType || "selected room"}. The camera must be inside that room, not above the plan.`;
 
   return [
@@ -45,7 +45,7 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomN
     "Use the attached plan only as spatial reference. Do not copy the floor plan drawing into the final image.",
     "Do not create a top-down plan, blueprint, dollhouse, exploded axonometric, multi-level collage, exterior-and-plan hybrid, or split-level diagram.",
     isWholeHouse
-      ? "The result must be an exterior architectural image of the home, not an interior room and not a floor-plan overlay."
+      ? "The result must not show the inside of the house, cutaway interiors, rooms, furniture, appliances, exposed floor plans, sectional views, or open-wall views. Keep walls opaque and render a normal exterior facade photograph."
       : "The result must look like a realistic client-facing interior photograph taken from standing height.",
     "Respect approximate wall openings, doors, windows, circulation paths, and room proportions as much as possible.",
     "Furnish with coherent, correctly scaled furniture and appliances.",
@@ -59,7 +59,9 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomN
       ? "The floor plan is provided as a remote image URL."
       : "The floor plan is provided as an uploaded image.",
     "Do not add impossible doors, extra windows, warped walls, duplicate toilets, blocked pathways, or unrelated floors.",
-    "Output a polished, realistic interior visualization suitable for a client presentation."
+    isWholeHouse
+      ? "Output a polished, realistic exterior facade visualization suitable for a client presentation."
+      : "Output a polished, realistic interior visualization suitable for a client presentation."
   ].join(" ");
 }
 
