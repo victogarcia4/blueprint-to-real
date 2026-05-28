@@ -21,6 +21,9 @@ const previewImage = document.querySelector("#previewImage");
 const previewPdf = document.querySelector("#previewPdf");
 const previewFallback = document.querySelector("#previewFallback");
 const previewStatus = document.querySelector("#previewStatus");
+const previewActions = document.querySelector("#previewActions");
+const openPreviewLink = document.querySelector("#openPreviewLink");
+const previewHint = document.querySelector("#previewHint");
 const renderApiUrl =
   location.hostname === "127.0.0.1" || location.hostname === "localhost"
     ? "https://blueprint-2-real.vercel.app/api/render"
@@ -67,6 +70,8 @@ function resetPreview() {
   previewImage.hidden = true;
   previewPdf.hidden = true;
   previewFallback.hidden = true;
+  previewActions.hidden = true;
+  openPreviewLink.removeAttribute("href");
   previewImage.removeAttribute("src");
   previewPdf.removeAttribute("src");
   planPreview.hidden = true;
@@ -80,6 +85,9 @@ function showPreviewFromFile(file, extension) {
   if (file.type.startsWith("image/")) {
     previewImage.src = previewObjectUrl;
     previewImage.hidden = false;
+    openPreviewLink.href = previewObjectUrl;
+    previewActions.hidden = false;
+    previewHint.textContent = "Esta imagen se puede usar como referencia para render real.";
     previewStatus.textContent = "Imagen lista para enviar al render";
     return;
   }
@@ -87,6 +95,9 @@ function showPreviewFromFile(file, extension) {
   if (extension.toLowerCase() === "pdf") {
     previewPdf.src = previewObjectUrl;
     previewPdf.hidden = false;
+    openPreviewLink.href = previewObjectUrl;
+    previewActions.hidden = false;
+    previewHint.textContent = "PDF visible para revision. La renderizacion IA requiere convertirlo a imagen.";
     previewStatus.textContent = "PDF visible. Para IA real, convierte a imagen o usa una URL de imagen.";
     return;
   }
@@ -100,6 +111,9 @@ function showPreviewFromUrl(value) {
   planPreview.hidden = false;
   previewImage.src = value;
   previewImage.hidden = false;
+  openPreviewLink.href = value;
+  previewActions.hidden = false;
+  previewHint.textContent = "URL publica lista para previsualizar y enviar al backend.";
   previewStatus.textContent = "URL cargada. Si no aparece, el servidor remoto bloquea la vista previa.";
 }
 
