@@ -35,6 +35,7 @@ let processed = false;
 let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
 let uploadedImageDataUrls = [];
+let visualReferences = [];
 let remoteImageUrl = "";
 let previewObjectUrl = "";
 let previewObjectUrls = [];
@@ -59,6 +60,51 @@ function setFileCard(name, type, meta) {
   fileMeta.textContent = meta;
   fileCard.hidden = false;
   renderStatus.textContent = "Plano listo para procesar";
+}
+
+function classifyReference(name) {
+  const normalized = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (/(fachada|facade|exterior|front|elevation|casa|house)/.test(normalized)) {
+    return "whole house";
+  }
+  if (/(cocina|kitchen)/.test(normalized)) return "kitchen";
+  if (/(bano|bath|bathroom|toilet|shower)/.test(normalized)) return "bathroom";
+  if (/(dormitorio|recamara|bedroom|habitacion)/.test(normalized)) return "bedroom";
+  if (/(sala|living|lounge|family)/.test(normalized)) return "living room";
+  if (/(plano|blueprint|floor|plan|layout|pdf)/.test(normalized)) return "plan";
+  return "reference";
+}
+
+function getRenderTargets() {
+  const categories = new Set(visualReferences.map((reference) => reference.category));
+  const hasPlan = categories.has("plan") || visualReferences.some((reference) => reference.fromPdf);
+  const matchedRooms = detectedRooms.filter((room) => categories.has(room.type));
+
+  if (matchedRooms.length) {
+    const wholeHouse = categories.has("whole house") ? [detectedRooms[0]] : [];
+    return [...wholeHouse, ...matchedRooms];
+  }
+
+  return hasPlan || remoteImageUrl || visualReferences.length ? detectedRooms : detectedRooms.slice(1);
+}
+
+function getReferencesForRoom(room) {
+  if (!visualReferences.length) return uploadedImageDataUrls;
+
+  const plans = visualReferences.filter((reference) => reference.category === "plan" || reference.fromPdf);
+  const exact = visualReferences.filter((reference) => reference.category === room.type);
+  const exterior = visualReferences.filter((reference) => reference.category === "whole house");
+  const general = visualReferences.filter((reference) => reference.category === "reference");
+
+  if (room.type === "whole house") {
+    return [...exterior, ...plans, ...general].map((reference) => reference.image).slice(0, 4);
+  }
+
+  return [...exact, ...plans, ...general].map((reference) => reference.image).slice(0, 4);
 }
 
 async function loadPdfJs() {
@@ -251,7 +297,8 @@ function showDemoRenders() {
 }
 
 function createRoomRenderCards() {
-  renderGrid.innerHTML = detectedRooms
+  const targets = getRenderTargets();
+  renderGrid.innerHTML = targets
     .map(
       (room, index) => `
         <article class="render-card generated render-loading" id="renderRoom${index}">
@@ -323,19 +370,30 @@ function handleFiles(fileList) {
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
   uploadedImageDataUrls = [];
+  visualReferences = [];
 
   const imagePromises = imageFiles.map(
     (file) =>
       new Promise((resolve) => {
         const reader = new FileReader();
         reader.addEventListener("load", () =>
-          resolve({ image: String(reader.result || ""), title: file.name, fromPdf: false })
+          resolve({
+            image: String(reader.result || ""),
+            title: file.name,
+            category: classifyReference(file.name),
+            fromPdf: false
+          })
         );
         reader.readAsDataURL(file);
       })
   );
   const pdfPromises = pdfFiles.map((file) =>
-    renderPdfFirstPage(file).then((image) => ({ image, title: `${file.name} - pagina 1`, fromPdf: true }))
+    renderPdfFirstPage(file).then((image) => ({
+      image,
+      title: `${file.name} - pagina 1`,
+      category: "plan",
+      fromPdf: true
+    }))
   );
 
   Promise.allSettled([...imagePromises, ...pdfPromises]).then((results) => {
@@ -343,6 +401,7 @@ function handleFiles(fileList) {
       .filter((result) => result.status === "fulfilled" && result.value.image)
       .map((result) => result.value);
 
+    visualReferences = converted;
     uploadedImageDataUrls = converted.map((item) => item.image);
     uploadedImageDataUrl = uploadedImageDataUrls[0] || "";
 
@@ -397,6 +456,7 @@ urlForm.addEventListener("submit", (event) => {
     remoteImageUrl = value;
     uploadedImageDataUrl = "";
     uploadedImageDataUrls = [];
+    visualReferences = [];
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
     showPreviewFromUrl(value);
   } catch {
@@ -445,12 +505,14 @@ renderButton.addEventListener("click", () => {
   };
 
   Promise.allSettled(
-    detectedRooms.map((room, index) =>
+    getRenderTargets().map((room, index) =>
       fetch(renderApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...basePayload,
+          imageDataUrl: getReferencesForRoom(room)[0] || uploadedImageDataUrl,
+          imageDataUrls: getReferencesForRoom(room),
           roomName: room.name,
           roomType: room.type
         })
@@ -473,10 +535,11 @@ renderButton.addEventListener("click", () => {
     )
   ).then((results) => {
     const completed = results.filter((result) => result.status === "fulfilled").length;
+    const total = getRenderTargets().length;
     renderStatus.textContent =
-      completed === detectedRooms.length
+      completed === total
         ? `${completed} ambientes renderizados`
-        : `${completed} de ${detectedRooms.length} ambientes renderizados`;
+        : `${completed} de ${total} ambientes renderizados`;
     renderButton.disabled = false;
   });
 });
