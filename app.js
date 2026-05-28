@@ -17,13 +17,8 @@ const confidenceMetric = document.querySelector("#confidenceMetric");
 const roomMetric = document.querySelector("#roomMetric");
 const styleGroup = document.querySelector("#styleGroup");
 const planPreview = document.querySelector("#planPreview");
-const previewImage = document.querySelector("#previewImage");
-const previewPdf = document.querySelector("#previewPdf");
-const previewFallback = document.querySelector("#previewFallback");
 const previewStatus = document.querySelector("#previewStatus");
-const previewActions = document.querySelector("#previewActions");
-const openPreviewLink = document.querySelector("#openPreviewLink");
-const previewHint = document.querySelector("#previewHint");
+const previewGallery = document.querySelector("#previewGallery");
 const renderApiUrl =
   location.hostname === "127.0.0.1" || location.hostname === "localhost"
     ? "https://blueprint-2-real.vercel.app/api/render"
@@ -39,8 +34,10 @@ const detectedRooms = [
 let processed = false;
 let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
+let uploadedImageDataUrls = [];
 let remoteImageUrl = "";
 let previewObjectUrl = "";
+let previewObjectUrls = [];
 let renderedRooms = [];
 
 const placeholderRenders = renderGrid.innerHTML;
@@ -62,59 +59,106 @@ function setFileCard(name, type, meta) {
 }
 
 function resetPreview() {
-  if (previewObjectUrl) {
-    URL.revokeObjectURL(previewObjectUrl);
-    previewObjectUrl = "";
-  }
-
-  previewImage.hidden = true;
-  previewPdf.hidden = true;
-  previewFallback.hidden = true;
-  previewActions.hidden = true;
-  openPreviewLink.removeAttribute("href");
-  previewImage.removeAttribute("src");
-  previewPdf.removeAttribute("src");
+  previewObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewObjectUrls = [];
+  previewObjectUrl = "";
+  previewGallery.innerHTML = "";
   planPreview.hidden = true;
 }
 
-function showPreviewFromFile(file, extension) {
+function createPreviewCard({ title, subtitle, url, kind }) {
+  const card = document.createElement("article");
+  card.className = "preview-card";
+  const media = document.createElement("div");
+  media.className = "preview-frame";
+
+  if (kind === "image") {
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = `Previsualizacion de ${title}`;
+    media.append(image);
+  } else if (kind === "pdf") {
+    const frame = document.createElement("iframe");
+    frame.src = url;
+    frame.title = `Previsualizacion PDF de ${title}`;
+    media.append(frame);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "preview-fallback";
+    fallback.innerHTML = `<strong>Vista previa no disponible</strong><small>${subtitle}</small>`;
+    media.append(fallback);
+  }
+
+  card.innerHTML = `
+    <div class="preview-card-header">
+      <strong>${escapeHtml(title)}</strong>
+      <small>${escapeHtml(subtitle)}</small>
+    </div>
+  `;
+  card.append(media);
+
+  if (url) {
+    const actions = document.createElement("div");
+    actions.className = "preview-actions";
+    actions.innerHTML = `
+      <a class="secondary-button" href="${url}" target="_blank" rel="noopener">Abrir archivo</a>
+      <small>${kind === "pdf" ? "PDF visible para revision" : "Referencia lista"}</small>
+    `;
+    card.append(actions);
+  }
+
+  previewGallery.append(card);
+}
+
+function showPreviewFromFiles(files) {
   resetPreview();
   planPreview.hidden = false;
-  previewObjectUrl = URL.createObjectURL(file);
+  previewStatus.textContent = `${files.length} archivo${files.length === 1 ? "" : "s"} anexado${files.length === 1 ? "" : "s"}`;
 
-  if (file.type.startsWith("image/")) {
-    previewImage.src = previewObjectUrl;
-    previewImage.hidden = false;
-    openPreviewLink.href = previewObjectUrl;
-    previewActions.hidden = false;
-    previewHint.textContent = "Esta imagen se puede usar como referencia para render real.";
-    previewStatus.textContent = "Imagen lista para enviar al render";
-    return;
-  }
+  files.forEach((file) => {
+    const url = URL.createObjectURL(file);
+    previewObjectUrls.push(url);
+    const extension = (file.name.split(".").pop() || "").toLowerCase();
 
-  if (extension.toLowerCase() === "pdf") {
-    previewPdf.src = previewObjectUrl;
-    previewPdf.hidden = false;
-    openPreviewLink.href = previewObjectUrl;
-    previewActions.hidden = false;
-    previewHint.textContent = "PDF visible para revision. La renderizacion IA requiere convertirlo a imagen.";
-    previewStatus.textContent = "PDF visible. Para IA real, convierte a imagen o usa una URL de imagen.";
-    return;
-  }
+    if (file.type.startsWith("image/")) {
+      createPreviewCard({
+        title: file.name,
+        subtitle: "Imagen enviada al modelo para analisis",
+        url,
+        kind: "image"
+      });
+      return;
+    }
 
-  previewFallback.hidden = false;
-  previewStatus.textContent = "Formato sin previsualizacion";
+    if (file.type === "application/pdf" || extension === "pdf") {
+      createPreviewCard({
+        title: file.name,
+        subtitle: "PDF previsualizado. Conversion IA pendiente",
+        url,
+        kind: "pdf"
+      });
+      return;
+    }
+
+    createPreviewCard({
+      title: file.name,
+      subtitle: "Formato sin vista previa",
+      url,
+      kind: "fallback"
+    });
+  });
 }
 
 function showPreviewFromUrl(value) {
   resetPreview();
   planPreview.hidden = false;
-  previewImage.src = value;
-  previewImage.hidden = false;
-  openPreviewLink.href = value;
-  previewActions.hidden = false;
-  previewHint.textContent = "URL publica lista para previsualizar y enviar al backend.";
   previewStatus.textContent = "URL cargada. Si no aparece, el servidor remoto bloquea la vista previa.";
+  createPreviewCard({
+    title: "URL del plano",
+    subtitle: "URL publica enviada al modelo",
+    url: value,
+    kind: "image"
+  });
 }
 
 function clearPipeline() {
@@ -124,6 +168,9 @@ function clearPipeline() {
 }
 
 function processPlan() {
+  if (!planPreview.hidden) {
+    planPreview.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   clearPipeline();
   processed = false;
   processButton.textContent = "Procesando";
@@ -219,36 +266,55 @@ function updateRoomError(index, room, message) {
   `;
 }
 
-function handleFile(file) {
-  if (!file) return;
-  const extension = file.name.split(".").pop() || "file";
+function handleFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const firstFile = files[0];
+  const extension = firstFile.name.split(".").pop() || "file";
   const accepted = ["pdf", "jpg", "jpeg", "png", "gif"];
+  const invalid = files.find((file) => {
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    return !accepted.includes(ext);
+  });
 
-  if (!accepted.includes(extension.toLowerCase())) {
-    setFileCard(file.name, "ERR", "Formato no soportado");
+  if (invalid) {
+    setFileCard(invalid.name, "ERR", "Formato no soportado");
     return;
   }
 
-  const size = formatBytes(file.size);
-  setFileCard(file.name, extension, `${size} seleccionado. Validacion completada.`);
-  showPreviewFromFile(file, extension);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+  const pdfFiles = files.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+  setFileCard(
+    files.length === 1 ? firstFile.name : `${files.length} archivos anexados`,
+    files.length === 1 ? extension : "SET",
+    `${formatBytes(totalSize)} total. ${imageFiles.length} imagen(es), ${pdfFiles.length} PDF(s).`
+  );
+  showPreviewFromFiles(files);
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
+  uploadedImageDataUrls = [];
 
-  if (file.type.startsWith("image/")) {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      uploadedImageDataUrl = String(reader.result || "");
-      fileMeta.textContent = `${size} seleccionado. Imagen lista para render real.`;
-    });
-    reader.readAsDataURL(file);
-  } else {
-    fileMeta.textContent = `${size} seleccionado. Para render real, sube una imagen del plano o usa una URL de imagen.`;
-  }
+  Promise.all(
+    imageFiles.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.addEventListener("load", () => resolve(String(reader.result || "")));
+          reader.readAsDataURL(file);
+        })
+    )
+  ).then((images) => {
+    uploadedImageDataUrls = images.filter(Boolean);
+    uploadedImageDataUrl = uploadedImageDataUrls[0] || "";
+    fileMeta.textContent = uploadedImageDataUrls.length
+      ? `${uploadedImageDataUrls.length} imagen(es) listas para render real. ${pdfFiles.length} PDF(s) en preview.`
+      : "PDF(s) previsualizados. Para render real automatico agrega una imagen o URL.";
+  });
 }
 
 fileInput.addEventListener("change", (event) => {
-  handleFile(event.target.files[0]);
+  handleFiles(event.target.files);
 });
 
 ["dragenter", "dragover"].forEach((eventName) => {
@@ -266,7 +332,7 @@ fileInput.addEventListener("change", (event) => {
 });
 
 dropzone.addEventListener("drop", (event) => {
-  handleFile(event.dataTransfer.files[0]);
+  handleFiles(event.dataTransfer.files);
 });
 
 urlForm.addEventListener("submit", (event) => {
@@ -279,6 +345,7 @@ urlForm.addEventListener("submit", (event) => {
     const extension = path.includes(".") ? path.split(".").pop() : "URL";
     remoteImageUrl = value;
     uploadedImageDataUrl = "";
+    uploadedImageDataUrls = [];
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
     showPreviewFromUrl(value);
   } catch {
@@ -317,6 +384,7 @@ renderButton.addEventListener("click", () => {
 
   const basePayload = {
     imageDataUrl: uploadedImageDataUrl,
+    imageDataUrls: uploadedImageDataUrls,
     imageUrl: remoteImageUrl,
     style: activeStyle,
     floor: document.querySelector("#floorSelect").value,
@@ -371,8 +439,10 @@ function escapeHtml(value) {
 }
 
 function getPlanPreviewForReport() {
-  if (uploadedImageDataUrl) {
-    return `<img class="plan-image" src="${uploadedImageDataUrl}" alt="Plano adjuntado" />`;
+  if (uploadedImageDataUrls.length) {
+    return uploadedImageDataUrls
+      .map((image, index) => `<img class="plan-image" src="${image}" alt="Plano adjuntado ${index + 1}" />`)
+      .join("");
   }
 
   if (remoteImageUrl) {

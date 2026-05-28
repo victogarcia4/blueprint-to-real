@@ -16,7 +16,7 @@
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="styles.css?v=20260528-pdf-preview" />
+    <link rel="stylesheet" href="styles.css?v=20260528-multi-files" />
   </head>
   <body>
     <div class="app-shell">
@@ -81,10 +81,10 @@
             </div>
 
             <label class="dropzone" for="fileInput" id="dropzone">
-              <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,.gif" />
+              <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,.gif" multiple />
               <span class="upload-icon">+</span>
-              <strong>Arrastra o selecciona un archivo</strong>
-              <small>Maximo recomendado: 100 MB en desktop, 50 MB en mobile.</small>
+              <strong>Arrastra o selecciona archivos</strong>
+              <small>PDF, JPG, PNG o GIF. Puedes anexar plano, fachada y referencias.</small>
             </label>
 
             <form class="url-form" id="urlForm">
@@ -109,20 +109,7 @@
                 <strong>Previsualizacion del plano</strong>
                 <small id="previewStatus">Archivo listo</small>
               </div>
-              <div class="preview-frame" id="previewFrame">
-                <img id="previewImage" alt="Previsualizacion del plano cargado" hidden />
-                <iframe id="previewPdf" title="Previsualizacion PDF del plano" hidden></iframe>
-                <div class="preview-fallback" id="previewFallback" hidden>
-                  <strong>Vista previa no disponible</strong>
-                  <small>Usa JPG, PNG, GIF o una URL de imagen para renderizacion real inmediata.</small>
-                </div>
-              </div>
-              <div class="preview-actions" id="previewActions" hidden>
-                <a class="secondary-button" id="openPreviewLink" href="#" target="_blank" rel="noopener">
-                  Abrir plano
-                </a>
-                <small id="previewHint">Previsualizacion disponible</small>
-              </div>
+              <div class="preview-gallery" id="previewGallery"></div>
             </div>
           </article>
 
@@ -140,39 +127,6 @@
               <li data-step="4"><span></span><div><strong>Preparando render</strong><small>ControlNet, mascaras y prompts.</small></div></li>
             </ol>
           </article>
-        </section>
-
-        <section class="review-section" aria-labelledby="reviewTitle">
-          <div class="section-heading">
-            <p class="eyebrow">03 Revision</p>
-            <h2 id="reviewTitle">Modelo espacial editable</h2>
-            <p>Corrige el analisis antes de gastar GPU en renders finales.</p>
-          </div>
-          <div class="review-layout">
-            <div class="analysis-board">
-              <div class="room-tag tag-living">Sala 21.4 m2</div>
-              <div class="room-tag tag-kitchen">Cocina 12.8 m2</div>
-              <div class="room-tag tag-bed">Dormitorio 15.6 m2</div>
-              <div class="room-tag tag-bath">Bano 5.1 m2</div>
-            </div>
-            <div class="room-table" role="table" aria-label="Habitaciones detectadas">
-              <div class="table-row table-head" role="row">
-                <span>Espacio</span><span>Confianza</span><span>Accion</span>
-              </div>
-              <div class="table-row" role="row">
-                <span>Cocina</span><span>94%</span><button type="button">Editar</button>
-              </div>
-              <div class="table-row" role="row">
-                <span>Sala</span><span>90%</span><button type="button">Editar</button>
-              </div>
-              <div class="table-row" role="row">
-                <span>Dormitorio</span><span>88%</span><button type="button">Editar</button>
-              </div>
-              <div class="table-row" role="row">
-                <span>Bano</span><span>86%</span><button type="button">Editar</button>
-              </div>
-            </div>
-          </div>
         </section>
 
         <section class="studio-section" id="personalizacion" aria-labelledby="studioTitle">
@@ -239,6 +193,6 @@
         blueprint-2-real necesita JavaScript para procesar demos, validar URLs y generar previews.
       </div>
     </noscript>
-    <script src="app.js?v=20260528-pdf-preview" defer></script>
+    <script src="app.js?v=20260528-multi-files" defer></script>
   </body>
 </html>

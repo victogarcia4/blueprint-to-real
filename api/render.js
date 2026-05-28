@@ -16,8 +16,8 @@ function parseBody(request) {
 
     request.on("data", (chunk) => {
       body += chunk;
-      if (body.length > 10_000_000) {
-        reject(new Error("Payload demasiado grande. Usa una imagen optimizada menor a 10 MB."));
+      if (body.length > 25_000_000) {
+        reject(new Error("Payload demasiado grande. Usa imagenes optimizadas o menos archivos."));
         request.destroy();
       }
     });
@@ -34,7 +34,7 @@ function parseBody(request) {
   });
 }
 
-function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType }) {
+function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType, referenceCount }) {
   const isWholeHouse = roomType === "whole house";
   const framing = isWholeHouse
     ? "Create a single elegant full-house architectural visualization. Show the complete home as a coherent exterior or cutaway overview, not separate rooms."
@@ -54,6 +54,7 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomN
     `Wall finish: ${walls || "warm white plaster"}.`,
     `Furnishing level: ${furnish || "complete"}.`,
     `Geometry fidelity target: ${fidelity || 88} percent.`,
+    `Reference files available to analyze: ${referenceCount || 1}. Use all attached images as references when deciding exterior, plan, room layout, and style.`,
     sourceKind === "url"
       ? "The floor plan is provided as a remote image URL."
       : "The floor plan is provided as an uploaded image.",
@@ -68,7 +69,7 @@ function findGeneratedImage(result) {
   return image || null;
 }
 
-function selectRenderModel({ imageDataUrl, imageUrl }) {
+function selectRenderModel() {
   if (process.env.OPENROUTER_RENDER_MODEL) {
     return process.env.OPENROUTER_RENDER_MODEL;
   }
@@ -102,9 +103,10 @@ export default async function handler(request, response) {
 
   try {
     const body = await parseBody(request);
-    const { imageDataUrl, imageUrl, style, floor, walls, furnish, fidelity, roomName, roomType } = body;
+    const { imageDataUrl, imageDataUrls, imageUrl, style, floor, walls, furnish, fidelity, roomName, roomType } = body;
+    const referenceImages = Array.isArray(imageDataUrls) && imageDataUrls.length ? imageDataUrls : imageDataUrl ? [imageDataUrl] : [];
     const sourceKind = imageUrl ? "url" : "upload";
-    const selectedModel = selectRenderModel({ imageDataUrl, imageUrl });
+    const selectedModel = selectRenderModel();
     const prompt = buildPrompt({
       style,
       floor,
@@ -113,14 +115,17 @@ export default async function handler(request, response) {
       fidelity,
       sourceKind,
       roomName,
-      roomType
+      roomType,
+      referenceCount: referenceImages.length + (imageUrl ? 1 : 0)
     });
 
     const content = [{ type: "text", text: prompt }];
 
-    if (imageDataUrl) {
-      content.push({ type: "image_url", image_url: { url: imageDataUrl } });
-    } else if (imageUrl) {
+    referenceImages.slice(0, 4).forEach((image) => {
+      content.push({ type: "image_url", image_url: { url: image } });
+    });
+
+    if (!referenceImages.length && imageUrl) {
       content.push({ type: "image_url", image_url: { url: imageUrl } });
     }
 
