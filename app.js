@@ -324,14 +324,17 @@ function showPreviewFromUrl(value) {
 }
 
 function ensureOriginalPreview() {
-  const previewIsEmpty = !previewGallery.children.length;
+  const inputFiles = Array.from(fileInput.files || []);
+  const sourceFiles = inputFiles.length ? inputFiles : originalPreviewFiles;
+  const hasSourceFiles = sourceFiles.length > 0;
 
-  if (originalPreviewFiles.length && (planPreview.hidden || previewIsEmpty)) {
+  if (hasSourceFiles) {
+    originalPreviewFiles = sourceFiles;
     showPreviewFromFiles(originalPreviewFiles);
     return;
   }
 
-  if (remoteImageUrl && (planPreview.hidden || previewIsEmpty)) {
+  if (remoteImageUrl) {
     showPreviewFromUrl(remoteImageUrl);
   }
 }
