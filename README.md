@@ -43,4 +43,6 @@ Optional:
 OPENROUTER_RENDER_MODEL=google/gemini-2.5-flash-image
 ```
 
+The default model is Google's Gemini 2.5 Flash Image through OpenRouter, selected as a low-cost image model with good multimodal plan-reference support. If OpenRouter exposes a cheaper/free compatible image model in your account, set `OPENROUTER_RENDER_MODEL` without changing code.
+
 For real plan-conditioned rendering, upload a JPG, PNG, GIF, or provide a public image URL. Local PDFs are accepted by the UI for the product flow, but PDF-to-image conversion should be added as a separate backend step before sending the plan to the render endpoint.

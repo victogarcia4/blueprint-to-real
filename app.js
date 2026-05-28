@@ -15,6 +15,11 @@ const renderGrid = document.querySelector("#renderGrid");
 const confidenceMetric = document.querySelector("#confidenceMetric");
 const roomMetric = document.querySelector("#roomMetric");
 const styleGroup = document.querySelector("#styleGroup");
+const planPreview = document.querySelector("#planPreview");
+const previewImage = document.querySelector("#previewImage");
+const previewPdf = document.querySelector("#previewPdf");
+const previewFallback = document.querySelector("#previewFallback");
+const previewStatus = document.querySelector("#previewStatus");
 const renderApiUrl =
   location.hostname === "127.0.0.1" || location.hostname === "localhost"
     ? "https://blueprint-2-real.vercel.app/api/render"
@@ -30,6 +35,7 @@ let processed = false;
 let activeStyle = "Japandi";
 let uploadedImageDataUrl = "";
 let remoteImageUrl = "";
+let previewObjectUrl = "";
 
 const placeholderRenders = renderGrid.innerHTML;
 
@@ -47,6 +53,51 @@ function setFileCard(name, type, meta) {
   fileMeta.textContent = meta;
   fileCard.hidden = false;
   renderStatus.textContent = "Plano listo para procesar";
+}
+
+function resetPreview() {
+  if (previewObjectUrl) {
+    URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = "";
+  }
+
+  previewImage.hidden = true;
+  previewPdf.hidden = true;
+  previewFallback.hidden = true;
+  previewImage.removeAttribute("src");
+  previewPdf.removeAttribute("src");
+  planPreview.hidden = true;
+}
+
+function showPreviewFromFile(file, extension) {
+  resetPreview();
+  planPreview.hidden = false;
+  previewObjectUrl = URL.createObjectURL(file);
+
+  if (file.type.startsWith("image/")) {
+    previewImage.src = previewObjectUrl;
+    previewImage.hidden = false;
+    previewStatus.textContent = "Imagen lista para enviar al render";
+    return;
+  }
+
+  if (extension.toLowerCase() === "pdf") {
+    previewPdf.src = previewObjectUrl;
+    previewPdf.hidden = false;
+    previewStatus.textContent = "PDF visible. Para IA real, convierte a imagen o usa una URL de imagen.";
+    return;
+  }
+
+  previewFallback.hidden = false;
+  previewStatus.textContent = "Formato sin previsualizacion";
+}
+
+function showPreviewFromUrl(value) {
+  resetPreview();
+  planPreview.hidden = false;
+  previewImage.src = value;
+  previewImage.hidden = false;
+  previewStatus.textContent = "URL cargada. Si no aparece, el servidor remoto bloquea la vista previa.";
 }
 
 function clearPipeline() {
@@ -156,6 +207,7 @@ function handleFile(file) {
 
   const size = formatBytes(file.size);
   setFileCard(file.name, extension, `${size} seleccionado. Validacion completada.`);
+  showPreviewFromFile(file, extension);
   remoteImageUrl = "";
   uploadedImageDataUrl = "";
 
@@ -204,8 +256,10 @@ urlForm.addEventListener("submit", (event) => {
     remoteImageUrl = value;
     uploadedImageDataUrl = "";
     setFileCard(path, extension, "URL valida. El backend descargara el recurso.");
+    showPreviewFromUrl(value);
   } catch {
     setFileCard("URL invalida", "ERR", "Revisa el protocolo y dominio del enlace.");
+    resetPreview();
   }
 });
 

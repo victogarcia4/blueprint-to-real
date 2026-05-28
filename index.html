@@ -16,7 +16,7 @@
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="styles.css?v=20260528-room-renders" />
+    <link rel="stylesheet" href="styles.css?v=20260528-plan-preview" />
   </head>
   <body>
     <div class="app-shell">
@@ -102,6 +102,21 @@
                 <small id="fileMeta">Listo para procesar</small>
               </div>
               <button class="text-button" id="processButton" type="button">Procesar</button>
+            </div>
+
+            <div class="plan-preview" id="planPreview" hidden>
+              <div class="preview-header">
+                <strong>Previsualizacion del plano</strong>
+                <small id="previewStatus">Archivo listo</small>
+              </div>
+              <div class="preview-frame" id="previewFrame">
+                <img id="previewImage" alt="Previsualizacion del plano cargado" hidden />
+                <iframe id="previewPdf" title="Previsualizacion PDF del plano" hidden></iframe>
+                <div class="preview-fallback" id="previewFallback" hidden>
+                  <strong>Vista previa no disponible</strong>
+                  <small>Usa JPG, PNG, GIF o una URL de imagen para renderizacion real inmediata.</small>
+                </div>
+              </div>
             </div>
           </article>
 
@@ -215,6 +230,6 @@
         blueprint-2-real necesita JavaScript para procesar demos, validar URLs y generar previews.
       </div>
     </noscript>
-    <script src="app.js?v=20260528-room-renders" defer></script>
+    <script src="app.js?v=20260528-plan-preview" defer></script>
   </body>
 </html>
