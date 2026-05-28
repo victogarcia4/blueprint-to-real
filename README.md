@@ -43,11 +43,6 @@ Optional:
 OPENROUTER_RENDER_MODEL=black-forest-labs/flux.2-klein-4b
 ```
 
-Default model behavior:
-
-- Uploaded plan image or image URL: `black-forest-labs/flux.2-klein-4b`, selected because it supports text + image input and is one of OpenRouter's most cost-effective image-reference models.
-- No plan image reference: `google/imagen-4-fast`, selected for minimum-cost text-to-image generation.
-
-You can override either default with `OPENROUTER_RENDER_MODEL` without changing code.
+Default model: `black-forest-labs/flux.2-klein-4b`, selected because it supports text + image input and is one of OpenRouter's most cost-effective image-reference models. You can override it with `OPENROUTER_RENDER_MODEL` without changing code.
 
 For real plan-conditioned rendering, upload a JPG, PNG, GIF, or provide a public image URL. Local PDFs are accepted by the UI for the product flow, but PDF-to-image conversion should be added as a separate backend step before sending the plan to the render endpoint.

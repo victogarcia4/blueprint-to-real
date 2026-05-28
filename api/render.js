@@ -1,6 +1,5 @@
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
-const TEXT_TO_IMAGE_MODEL = "google/imagen-4-fast";
-const IMAGE_REFERENCE_MODEL = "black-forest-labs/flux.2-klein-4b";
+const DEFAULT_RENDER_MODEL = "black-forest-labs/flux.2-klein-4b";
 
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -65,7 +64,7 @@ function selectRenderModel({ imageDataUrl, imageUrl }) {
     return process.env.OPENROUTER_RENDER_MODEL;
   }
 
-  return imageDataUrl || imageUrl ? IMAGE_REFERENCE_MODEL : TEXT_TO_IMAGE_MODEL;
+  return DEFAULT_RENDER_MODEL;
 }
 
 export default async function handler(request, response) {
