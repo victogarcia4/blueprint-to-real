@@ -85,7 +85,7 @@ function getRenderTargets() {
   const matchedRooms = detectedRooms.filter((room) => categories.has(room.type));
 
   if (matchedRooms.length) {
-    const wholeHouse = categories.has("whole house") ? [detectedRooms[0]] : [];
+    const wholeHouse = categories.has("whole house") || hasPlan ? [detectedRooms[0]] : [];
     return [...wholeHouse, ...matchedRooms];
   }
 
@@ -119,18 +119,30 @@ async function loadPdfJs() {
 }
 
 async function renderPdfFirstPage(file) {
+  const pages = await renderPdfPages(file, 1);
+  return pages[0] || "";
+}
+
+async function renderPdfPages(file, maxPages = 3) {
   const pdfjs = await loadPdfJs();
   const data = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data }).promise;
-  const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 1.7 });
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
+  const pageCount = Math.min(pdf.numPages, maxPages);
+  const pages = [];
 
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  await page.render({ canvasContext: context, viewport }).promise;
-  return canvas.toDataURL("image/jpeg", 0.82);
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.55 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: context, viewport }).promise;
+    pages.push(canvas.toDataURL("image/jpeg", 0.8));
+  }
+
+  return pages;
 }
 
 function resetPreview() {
@@ -465,18 +477,21 @@ function handleFiles(fileList) {
       })
   );
   const pdfPromises = pdfFiles.map((file) =>
-    renderPdfFirstPage(file).then((image) => ({
-      image,
-      title: `${file.name} - pagina 1`,
-      category: "plan",
-      fromPdf: true
-    }))
+    renderPdfPages(file, 3).then((pages) =>
+      pages.map((image, index) => ({
+        image,
+        title: `${file.name} - pagina ${index + 1}`,
+        category: index === 0 ? "plan" : classifyReference(`${file.name} pagina ${index + 1}`),
+        fromPdf: true
+      }))
+    )
   );
 
   Promise.allSettled([...imagePromises, ...pdfPromises]).then((results) => {
     const converted = results
-      .filter((result) => result.status === "fulfilled" && result.value.image)
-      .map((result) => result.value);
+      .filter((result) => result.status === "fulfilled")
+      .flatMap((result) => (Array.isArray(result.value) ? result.value : [result.value]))
+      .filter((value) => value?.image);
 
     visualReferences = converted;
     uploadedImageDataUrls = converted.map((item) => item.image);
@@ -821,7 +836,7 @@ pdfButton.addEventListener("click", () => {
     return;
   }
 
-  const reportWindow = window.open("", "_blank", "noopener,noreferrer");
+  const reportWindow = window.open("", "_blank");
   if (!reportWindow) {
     renderStatus.textContent = "Permite ventanas emergentes para generar el reporte PDF";
     return;
@@ -830,8 +845,8 @@ pdfButton.addEventListener("click", () => {
   reportWindow.document.open();
   reportWindow.document.write(buildReportHtml());
   reportWindow.document.close();
-  reportWindow.addEventListener("load", () => {
+  window.setTimeout(() => {
     reportWindow.focus();
     reportWindow.print();
-  });
+  }, 650);
 });

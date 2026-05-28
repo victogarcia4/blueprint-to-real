@@ -37,7 +37,7 @@ function parseBody(request) {
 function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomName, roomType, referenceCount }) {
   const isWholeHouse = roomType === "whole house";
   const framing = isWholeHouse
-    ? "Create a single elegant full-house architectural visualization. Show the complete home as a coherent exterior or cutaway overview, not separate rooms."
+    ? "Create a single elegant exterior facade render of the complete house. If any reference shows an elevation, facade, roofline, front view, or whole-home exterior, use that as the primary source."
     : `Create a single photorealistic eye-level interior render of only the ${roomName || roomType || "selected room"}. The camera must be inside that room, not above the plan.`;
 
   return [
@@ -45,7 +45,7 @@ function buildPrompt({ style, floor, walls, furnish, fidelity, sourceKind, roomN
     "Use the attached plan only as spatial reference. Do not copy the floor plan drawing into the final image.",
     "Do not create a top-down plan, blueprint, dollhouse, exploded axonometric, multi-level collage, exterior-and-plan hybrid, or split-level diagram.",
     isWholeHouse
-      ? "The result may include an exterior facade or clean architectural overview if the reference includes the whole house."
+      ? "The result must be an exterior architectural image of the home, not an interior room and not a floor-plan overlay."
       : "The result must look like a realistic client-facing interior photograph taken from standing height.",
     "Respect approximate wall openings, doors, windows, circulation paths, and room proportions as much as possible.",
     "Furnish with coherent, correctly scaled furniture and appliances.",
